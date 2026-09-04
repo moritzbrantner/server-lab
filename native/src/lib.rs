@@ -107,7 +107,11 @@ impl LoopbackExperimentReport {
     }
 }
 
-pub fn serve(listener: TcpListener, config: ServerConfig, max_connections: usize) -> io::Result<()> {
+pub fn serve(
+    listener: TcpListener,
+    config: ServerConfig,
+    max_connections: usize,
+) -> io::Result<()> {
     let mut workers = Vec::new();
 
     for _ in 0..max_connections {
@@ -153,7 +157,9 @@ pub fn run_client(address: SocketAddr, config: &ClientConfig) -> ExperimentSumma
     summarize(samples)
 }
 
-pub fn run_loopback_experiment(config: &LoopbackExperimentConfig) -> io::Result<LoopbackExperimentReport> {
+pub fn run_loopback_experiment(
+    config: &LoopbackExperimentConfig,
+) -> io::Result<LoopbackExperimentReport> {
     if config.request_count == 0 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -197,7 +203,8 @@ pub fn run_loopback_experiment(config: &LoopbackExperimentConfig) -> io::Result<
     };
     let expected_impaired_successes = config.request_count - expected_drops;
     let expected_added_latency_ms = (config.proxy_one_way_delay_ms * 2) as f64;
-    let measured_added_mean_latency_ms = match (baseline.mean_latency_ms, impaired.mean_latency_ms) {
+    let measured_added_mean_latency_ms = match (baseline.mean_latency_ms, impaired.mean_latency_ms)
+    {
         (Some(baseline_mean), Some(impaired_mean)) => Some(impaired_mean - baseline_mean),
         _ => None,
     };
