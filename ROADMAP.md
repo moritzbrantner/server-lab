@@ -24,22 +24,33 @@
 - [x] Demonstrate Little's Law from measured throughput, mean request time, and average requests in the system.
 - [x] Add deterministic tests for each overload and flow-control behavior.
 
-## Next implementation horizon
-
 ### Slice 3 — replication semantics
 
-- Separate read replicas from leaders.
-- Model synchronous versus asynchronous replication delay.
-- Demonstrate stale reads and read-after-write consistency.
-- Add quorum reads/writes as a teaching scenario without pretending the simulator is a production database.
-- Introduce partitions and replica lag explicitly in the event trace.
+- [x] Separate the stateful replication lesson from the stateless request-routing simulator.
+- [x] Establish one write leader and explicit follower versions.
+- [x] Compare asynchronous leader acknowledgement, majority quorum acknowledgement, and sync-all acknowledgement.
+- [x] Demonstrate stale follower reads and leader reads.
+- [x] Add read-your-writes session consistency with bounded waiting and leader fallback.
+- [x] Add majority read quorums and make quorum intersection visible.
+- [x] Model deterministic replication delay, jitter, follower lag, and pending updates.
+- [x] Partition a follower replication link while keeping that follower readable by the client.
+- [x] Expose write timeouts, stale-read rate, acknowledgement latency, read waiting, final versions, and maximum lag.
+- [x] Add deterministic tests for asynchronous staleness, session guarantees, quorum progress, sync-all timeout, and partition lag.
+- [x] Publish replication and consistency as a dedicated GitHub Pages lesson with top-level lab navigation.
 
-### Slice 4 — availability and distributed coordination
+## Next implementation horizon
 
-- Model health checks, failover delay, retries, and retry amplification.
-- Add circuit breakers and exponential backoff.
-- Teach availability composition and correlated failure domains.
-- Add a small leader-election/consensus exhibit only after the failure model is explicit.
+### Slice 4 — availability, recovery, and coordination
+
+- Add active and passive health-check models with configurable detection delay.
+- Model failover delay separately from failure detection.
+- Add bounded retries and make retry amplification visible in offered load.
+- Add exponential backoff with deterministic jitter.
+- Add circuit breakers with closed, open, and half-open states.
+- Teach availability composition across independent and correlated failure domains.
+- Add leader failure only after the recovery model can explain detection and promotion timing.
+- Add a minimal leader-election exhibit with terms/epochs and fencing before introducing a named consensus algorithm.
+- Keep retry, failover, and election traces deterministic and explicit.
 
 ### Slice 5 — native network experiments
 
