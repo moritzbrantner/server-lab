@@ -376,8 +376,9 @@ export function simulateRecovery(config: RecoverySimulationConfig): RecoverySimu
     }
 
     advanceInfrastructure(pending.atMs);
+    const currentFailover = failover as FailoverRuntime | null;
 
-    if (failover !== null && !failover.completed && pending.atMs >= failover.detectedAtMs) {
+    if (currentFailover !== null && !currentFailover.completed && pending.atMs >= currentFailover.detectedAtMs) {
       const retryDelayMs = scheduleRetry(request, pending.attemptIndex, pending.atMs);
       request.attempts.push({
         requestId: request.requestId,
