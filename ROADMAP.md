@@ -53,15 +53,20 @@
 - [x] Fence a recovered stale leader after a higher term has elected a replacement.
 - [x] Keep recovery, retry, circuit, failure-domain, and election traces deterministic and covered by tests.
 
-## Next implementation horizon
-
 ### Slice 5 — native network experiments
 
-- Add small Rust server/client binaries using real sockets or HTTP.
-- Reproduce selected browser scenarios with multiple localhost processes.
-- Add a controllable proxy for delay, packet loss, and failure injection.
-- Compare simulated expectations with measured native results.
-- Use runtime-profiler where useful, while keeping benchmark claims separate from the browser simulator.
+- [x] Add a dependency-light Rust workspace beside the browser laboratory.
+- [x] Add real TCP server and probe-client binaries using `TcpListener` and `TcpStream`.
+- [x] Add a controllable fault proxy with per-direction delay and deterministic every-Nth connection loss/failure injection.
+- [x] Add a self-contained loopback experiment runner using ephemeral localhost ports.
+- [x] Reproduce the browser model's latency/loss expectations against measured real-socket behavior.
+- [x] Emit baseline, impaired, expected, and measured outcomes as machine-readable JSON.
+- [x] Keep exact wall-clock timing outside deterministic correctness assertions and benchmark claims.
+- [x] Keep output compatible with capture by runtime-profiler without making it a hard dependency.
+- [x] Add real-socket integration tests plus Rust formatting, Clippy, tests, and experiment smoke validation in CI.
+- [x] Publish a dedicated `/native` teaching page with the process topology, commands, and measurement boundary.
+
+## Next implementation horizon
 
 ### Slice 6 — deeper systems topics
 
@@ -71,3 +76,4 @@
 - Connection pools and keep-alive behavior.
 - Queues, workers, fan-out, and head-of-line blocking.
 - CAP/PACELC-oriented scenarios grounded in concrete traces rather than slogans.
+- Add packet-level loss/reordering/congestion experiments only with an explicit OS/network-emulation contract rather than pretending a TCP stream proxy is packet-level netem.
