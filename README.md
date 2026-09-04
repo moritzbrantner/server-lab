@@ -1,6 +1,6 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, and real network conditions.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, caching, sharding, admission control, and real network conditions.
 
 The repository deliberately uses two different surfaces:
 
@@ -11,7 +11,7 @@ The browser models are not presented as infrastructure benchmarks, and the nativ
 
 ## Curriculum
 
-The teaching site has four top-level lessons.
+The teaching site has five top-level lessons.
 
 ### Routing & capacity
 
@@ -67,6 +67,18 @@ The Rust layer leaves the deterministic simulator and exercises real localhost s
 
 The native layer deliberately does not claim stable benchmark numbers. Exact wall-clock timing is noisy; semantic outcomes and directional effects are the gate.
 
+### Deeper systems
+
+A fifth deterministic lesson keeps several advanced topics narrow and inspectable:
+
+1. **Caching and invalidation** — bounded LRU capacity, TTL expiry, write invalidation, hits, misses, stale reads, and origin pressure.
+2. **Consistent hashing and sharding** — key movement when adding a node, virtual nodes, per-shard balance, and hot-key skew.
+3. **Rate limiting and admission control** — no control versus token buckets versus concurrency protection under a deterministic burst.
+4. **Connection pools and keep-alive** — one-time handshake cost, connection reuse, fan-out, slow children, and head-of-line queueing.
+5. **CAP/PACELC through traces** — quorum rejection versus local availability during a partition, plus cross-region quorum latency versus asynchronous stale reads when healthy.
+
+The deeper-systems models are intentionally separate pure functions rather than one generic distributed-systems abstraction. Their job is to expose the mechanism behind each tradeoff.
+
 ## Development
 
 ### Web
@@ -103,4 +115,4 @@ The teaching site is a static Next.js export suitable for GitHub Pages; the nati
 
 `server-lab` owns educational scenarios, deterministic simulation models, visualizations, and experiment harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery/coordination semantics, and [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md) for the real-socket measurement boundary.
+See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery/coordination semantics, [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md) for the real-socket measurement boundary, and [`docs/contracts/deeper-systems.md`](docs/contracts/deeper-systems.md) for Slice 6 model boundaries.
