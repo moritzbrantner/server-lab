@@ -4,10 +4,11 @@ import "./globals.css";
 import "./overload.css";
 import "./replication.css";
 import "./recovery.css";
+import "./native.css";
 
 export const metadata: Metadata = {
   title: "server-lab",
-  description: "Interactive experiments for latency, load balancing, replication, consistency, recovery, coordination, queues, overload, and availability.",
+  description: "Interactive experiments for latency, load balancing, replication, consistency, recovery, coordination, native networking, queues, overload, and availability.",
 };
 
 const navLinkStyle = {
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Link href="/" style={navLinkStyle}>Routing &amp; capacity</Link>
           <Link href="/replication" style={navLinkStyle}>Replication &amp; consistency</Link>
           <Link href="/recovery" style={navLinkStyle}>Recovery &amp; coordination</Link>
+          <Link href="/native" style={navLinkStyle}>Native network experiments</Link>
         </nav>
         {children}
       </body>
