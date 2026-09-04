@@ -1,17 +1,17 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, and coordination.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, and real network conditions.
 
-The repository uses two deliberately different surfaces:
+The repository deliberately uses two different surfaces:
 
-- **Browser laboratory** — deterministic, visual simulations that can run on GitHub Pages.
-- **Native experiments** — real processes, sockets, and operating-system/network behavior where simulation would hide the lesson. These come in later slices.
+- **Browser laboratory** — deterministic, visual simulations published with GitHub Pages.
+- **Native experiments** — real Rust processes and sockets where operating-system/network behavior is itself part of the lesson.
 
-The browser lab is not presented as a benchmark of real infrastructure. Its job is to make system behavior inspectable and repeatable: the same seed and configuration must produce the same event trace and metrics.
+The browser models are not presented as infrastructure benchmarks, and the native timing results are not treated as deterministic correctness data. The repository makes that boundary explicit so simplified expectations can be compared with measured evidence without conflating them.
 
-## Browser curriculum
+## Curriculum
 
-The teaching site has three top-level lessons.
+The teaching site has four top-level lessons.
 
 ### Routing & capacity
 
@@ -27,8 +27,6 @@ The shared stateless request model teaches:
 8. **Backpressure** — moving waiting toward the producer instead of allowing unbounded server-side work.
 9. **Little's Law** — relating measured throughput and mean request time to average requests in the system.
 
-The routing lesson includes steady-state, saturation, and burst presets while keeping the underlying controls available.
-
 ### Replication & consistency
 
 A separate stateful version model teaches:
@@ -40,29 +38,38 @@ A separate stateful version model teaches:
 5. **Eventual reads** — a responsive follower may still return an older version.
 6. **Read-your-writes** — bounded waiting or leader fallback preserves a client's acknowledged session state.
 7. **Read quorums** — majority reads expose why intersecting read/write quorums can recover the newest acknowledged version.
-8. **Replica lag** — divergence is measured in versions and pending replication updates, not hidden inside generic latency.
+8. **Replica lag** — divergence is measured in versions and pending replication updates.
 9. **Partitions** — a follower can remain client-readable while its replication link to the leader is cut.
-
-The replication lesson includes Eventual, Session, Quorum, and Partition presets plus the underlying acknowledgement, read-consistency, delay, jitter, timeout, and operation controls.
 
 ### Recovery & coordination
 
 A third deterministic model makes recovery timing and coordination explicit:
 
-1. **Active health checks** — failure detection depends on check interval and threshold.
-2. **Passive health checks** — detection depends on observed failed requests and therefore traffic.
-3. **Failover delay** — promotion happens after detection rather than at physical failure time.
-4. **Bounded retries** — retry count and exponential backoff are visible in each logical request trace.
-5. **Retry amplification** — backend attempts are measured separately from logical requests.
-6. **Circuit breakers** — closed, open, and half-open states bound repeated backend failures.
-7. **Failure domains** — replica availability is compared inside one shared domain and across independent domains.
-8. **Leader failure** — heartbeat loss and election timeout are separate from the physical failure event.
-9. **Terms and fencing** — a recovered stale leader cannot continue writing after a higher term elects a replacement.
-10. **Majority requirement** — no leader is promoted when the surviving nodes cannot form a quorum.
+1. **Active and passive health checks**.
+2. **Failure detection versus failover delay**.
+3. **Bounded retries and exponential backoff**.
+4. **Retry amplification**.
+5. **Circuit breakers** with closed, open, and half-open states.
+6. **Independent versus correlated failure domains**.
+7. **Leader failure and heartbeat timeout**.
+8. **Terms, majority election, and fencing**.
 
-The recovery lesson includes Fast failover, Retry storm, Circuit breaker, and Zone outage presets plus independent election controls.
+### Native network experiments
+
+The Rust layer leaves the deterministic simulator and exercises real localhost sockets:
+
+1. **TCP server** — a tiny `PING` / `PONG` request-response service.
+2. **Probe client** — measures real connect/write/read latency and success.
+3. **Fault proxy** — adds deterministic per-direction delay and drops every Nth accepted connection.
+4. **Expected-vs-measured runner** — compares a direct baseline with the impaired path and emits JSON evidence.
+5. **Real-socket integration tests** — bind ephemeral ports and verify end-to-end behavior in CI.
+6. **Machine-readable receipts** — suitable for capture by `runtime-profiler` without making it a hard dependency.
+
+The native layer deliberately does not claim stable benchmark numbers. Exact wall-clock timing is noisy; semantic outcomes and directional effects are the gate.
 
 ## Development
+
+### Web
 
 ```bash
 cd web
@@ -73,10 +80,27 @@ bun run build
 bun run dev
 ```
 
-The teaching site is a static Next.js export suitable for GitHub Pages.
+### Native Rust
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo run -p server-lab-native --bin experiment -- 20 20 5 5 1000
+```
+
+For manual multi-process experiments:
+
+```bash
+cargo run -p server-lab-native --bin server -- 127.0.0.1:9000 5
+cargo run -p server-lab-native --bin fault-proxy -- 127.0.0.1:9100 127.0.0.1:9000 20 5
+cargo run -p server-lab-native --bin client -- 127.0.0.1:9100 20 1000 0
+```
+
+The teaching site is a static Next.js export suitable for GitHub Pages; the native experiments run locally or in CI.
 
 ## Repository boundaries
 
-`server-lab` owns educational scenarios, deterministic simulation models, visualizations, and experiments. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
+`server-lab` owns educational scenarios, deterministic simulation models, visualizations, and experiment harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, and [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery, failure-domain, and minimal election semantics.
+See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery/coordination semantics, and [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md) for the real-socket measurement boundary.
