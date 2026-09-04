@@ -61,8 +61,8 @@ export function simulateCache(config: CacheSimulationConfig): CacheSimulationRes
   let writes = 0;
 
   for (let index = 0; index < config.requestCount; index += 1) {
-    const key = keyPattern[index % keyPattern.length];
     const isWrite = config.writeEvery > 0 && (index + 1) % config.writeEvery === 0;
+    const key = isWrite ? "hot" : keyPattern[index % keyPattern.length];
     const currentOriginVersion = originVersions.get(key) ?? 0;
 
     if (isWrite) {
