@@ -1,6 +1,6 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, and failure.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, overload, and failure.
 
 The repository uses two deliberately different surfaces:
 
@@ -9,16 +9,21 @@ The repository uses two deliberately different surfaces:
 
 The browser lab is not presented as a benchmark of real infrastructure. Its job is to make system behavior inspectable and repeatable: the same seed and configuration must produce the same request trace and metrics.
 
-## First curriculum
+## Curriculum
 
-The first implementation horizon uses one shared request-routing model to teach:
+The shared request model currently teaches:
 
-1. **Latency** — service time versus network delay and tail latency.
-2. **Load balancing** — round-robin, least-connections, and random routing.
-3. **Replication** — replica count, read capacity, and the cost of losing replicas.
+1. **Latency** — service time versus network delay, queueing delay, and tail latency.
+2. **Load balancing** — round-robin, least-connections, and seeded-random routing.
+3. **Replication** — replica count, aggregate capacity, and the cost of losing replicas.
 4. **Availability** — node failures, successful-request ratio, and recovery through redundancy.
+5. **Queues** — worker concurrency, bounded waiting queues, and the latency cost of absorbing overload.
+6. **Overload control** — reject-when-busy, bounded queues, and latency-budget load shedding.
+7. **Bursts and saturation** — temporary arrival spikes versus sustained service capacity.
+8. **Backpressure** — moving waiting toward the producer instead of allowing unbounded server-side work.
+9. **Little's Law** — relating measured throughput and mean request time to average requests in the system.
 
-The same topology, controls, event trace, and metrics are reused across the lessons so that changing one system property has an understandable effect.
+The teaching site includes steady-state, saturation, and burst presets while keeping all underlying controls available for direct comparison.
 
 ## Development
 
