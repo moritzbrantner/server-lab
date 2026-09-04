@@ -1,6 +1,6 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, and failure.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, and coordination.
 
 The repository uses two deliberately different surfaces:
 
@@ -11,7 +11,7 @@ The browser lab is not presented as a benchmark of real infrastructure. Its job 
 
 ## Browser curriculum
 
-The teaching site now has two top-level lessons.
+The teaching site has three top-level lessons.
 
 ### Routing & capacity
 
@@ -45,6 +45,23 @@ A separate stateful version model teaches:
 
 The replication lesson includes Eventual, Session, Quorum, and Partition presets plus the underlying acknowledgement, read-consistency, delay, jitter, timeout, and operation controls.
 
+### Recovery & coordination
+
+A third deterministic model makes recovery timing and coordination explicit:
+
+1. **Active health checks** — failure detection depends on check interval and threshold.
+2. **Passive health checks** — detection depends on observed failed requests and therefore traffic.
+3. **Failover delay** — promotion happens after detection rather than at physical failure time.
+4. **Bounded retries** — retry count and exponential backoff are visible in each logical request trace.
+5. **Retry amplification** — backend attempts are measured separately from logical requests.
+6. **Circuit breakers** — closed, open, and half-open states bound repeated backend failures.
+7. **Failure domains** — replica availability is compared inside one shared domain and across independent domains.
+8. **Leader failure** — heartbeat loss and election timeout are separate from the physical failure event.
+9. **Terms and fencing** — a recovered stale leader cannot continue writing after a higher term elects a replacement.
+10. **Majority requirement** — no leader is promoted when the surviving nodes cannot form a quorum.
+
+The recovery lesson includes Fast failover, Retry storm, Circuit breaker, and Zone outage presets plus independent election controls.
+
 ## Development
 
 ```bash
@@ -62,4 +79,4 @@ The teaching site is a static Next.js export suitable for GitHub Pages.
 
 `server-lab` owns educational scenarios, deterministic simulation models, visualizations, and experiments. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, and [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for the stateful replication contract.
+See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, and [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery, failure-domain, and minimal election semantics.

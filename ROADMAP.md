@@ -38,19 +38,22 @@
 - [x] Add deterministic tests for asynchronous staleness, session guarantees, quorum progress, sync-all timeout, and partition lag.
 - [x] Publish replication and consistency as a dedicated GitHub Pages lesson with top-level lab navigation.
 
-## Next implementation horizon
-
 ### Slice 4 — availability, recovery, and coordination
 
-- Add active and passive health-check models with configurable detection delay.
-- Model failover delay separately from failure detection.
-- Add bounded retries and make retry amplification visible in offered load.
-- Add exponential backoff with deterministic jitter.
-- Add circuit breakers with closed, open, and half-open states.
-- Teach availability composition across independent and correlated failure domains.
-- Add leader failure only after the recovery model can explain detection and promotion timing.
-- Add a minimal leader-election exhibit with terms/epochs and fencing before introducing a named consensus algorithm.
-- Keep retry, failover, and election traces deterministic and explicit.
+- [x] Add active and passive health-check models with configurable detection timing.
+- [x] Model physical failure, failure detection, and failover completion as separate events.
+- [x] Add bounded retries and measure retry amplification as backend attempts per logical request.
+- [x] Add exponential backoff with deterministic seeded jitter.
+- [x] Add per-backend circuit breakers with closed, open, and half-open states.
+- [x] Teach availability composition across independent replicas and correlated/shared failure domains.
+- [x] Add a dedicated recovery lesson with fast-failover, retry-storm, circuit-breaker, and zone-outage presets.
+- [x] Add leader failure only after recovery timing is explicit.
+- [x] Add a minimal majority-based leader-election exhibit with terms/epochs and fencing tokens.
+- [x] Demonstrate that loss of a majority prevents safe leader promotion.
+- [x] Fence a recovered stale leader after a higher term has elected a replacement.
+- [x] Keep recovery, retry, circuit, failure-domain, and election traces deterministic and covered by tests.
+
+## Next implementation horizon
 
 ### Slice 5 — native network experiments
 
