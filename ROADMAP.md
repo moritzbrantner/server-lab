@@ -1,6 +1,8 @@
 # server-lab roadmap
 
-## Slice 1 — deterministic browser laboratory
+## Completed slices
+
+### Slice 1 — deterministic browser laboratory
 
 - [x] Establish the repository boundary between teaching simulation and real network experiments.
 - [x] Define one deterministic request-routing model shared by the first lessons.
@@ -11,15 +13,18 @@
 - [x] Publish the interactive laboratory as a static GitHub Pages site.
 - [x] Add deterministic unit tests and CI.
 
-## Next implementation horizon
-
 ### Slice 2 — queues, overload, and backpressure
 
-- Add bounded per-node queues and explicit queueing delay.
-- Compare reject, queue, and shed-load overload policies.
-- Demonstrate Little's Law with measured arrival rate, concurrency, and latency.
-- Add burst traffic and capacity-saturation scenarios.
-- Keep all browser traces deterministic and seedable.
+- [x] Add configurable worker concurrency and bounded per-node queues.
+- [x] Make queueing delay explicit in individual request traces and aggregate metrics.
+- [x] Compare reject, bounded-queue, and wait-budget load-shedding policies.
+- [x] Add deterministic burst traffic and a capacity-saturation preset.
+- [x] Model client-side backpressure as delayed offered work rather than server queueing.
+- [x] Expose nominal service capacity, overload drops, queued requests, and peak queue depth.
+- [x] Demonstrate Little's Law from measured throughput, mean request time, and average requests in the system.
+- [x] Add deterministic tests for each overload and flow-control behavior.
+
+## Next implementation horizon
 
 ### Slice 3 — replication semantics
 
