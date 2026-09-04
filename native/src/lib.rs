@@ -196,7 +196,10 @@ pub fn run_loopback_experiment(
     let baseline = run_client(backend_address, &client_config);
     let impaired = run_client(proxy_address, &client_config);
 
-    let expected_drops = config.request_count.checked_div(config.drop_every).unwrap_or(0);
+    let expected_drops = config
+        .request_count
+        .checked_div(config.drop_every)
+        .unwrap_or(0);
     let expected_impaired_successes = config.request_count - expected_drops;
     let expected_added_latency_ms = (config.proxy_one_way_delay_ms * 2) as f64;
     let measured_added_mean_latency_ms = match (baseline.mean_latency_ms, impaired.mean_latency_ms)
