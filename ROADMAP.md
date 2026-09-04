@@ -66,14 +66,23 @@
 - [x] Add real-socket integration tests plus Rust formatting, Clippy, tests, and experiment smoke validation in CI.
 - [x] Publish a dedicated `/native` teaching page with the process topology, commands, and measurement boundary.
 
-## Next implementation horizon
-
 ### Slice 6 — deeper systems topics
 
-- Caching and cache invalidation.
-- Consistent hashing and sharding.
-- Rate limiting and admission control.
-- Connection pools and keep-alive behavior.
-- Queues, workers, fan-out, and head-of-line blocking.
-- CAP/PACELC-oriented scenarios grounded in concrete traces rather than slogans.
-- Add packet-level loss/reordering/congestion experiments only with an explicit OS/network-emulation contract rather than pretending a TCP stream proxy is packet-level netem.
+- [x] Add a bounded LRU cache model with TTL expiry and invalidate-on-write versus TTL-only semantics.
+- [x] Expose cache hits, misses, stale reads, origin fetches, invalidations, evictions, and read latency.
+- [x] Compare modulo sharding with a virtual-node consistent-hash ring when one node is added.
+- [x] Expose key movement, shard key counts, weighted request load, and hot-key skew.
+- [x] Compare no admission control, token-bucket rate limiting, and concurrency limiting under a deterministic burst.
+- [x] Expose rejected work, peak in-flight work, and admissions beyond the backend concurrency envelope.
+- [x] Model connection reuse, handshake cost, fixed-size pools, fan-out, deterministic slow children, and FIFO head-of-line queueing.
+- [x] Add CAP/PACELC-oriented scenarios grounded in per-operation outcomes, latency, stale reads, divergent writes, and reconciliation work.
+- [x] Publish all five mechanisms as a dedicated `/systems` GitHub Pages lesson.
+- [x] Add explicit model contracts and deterministic tests for every Slice 6 tradeoff.
+
+## Further horizons
+
+- Add packet-level delay, loss, reordering, jitter, and congestion only through an explicit OS/network-emulation contract; do not mislabel the TCP stream proxy as packet-level netem.
+- Reproduce selected cache, shard, and admission-control scenarios with real multi-process native experiments.
+- Compare persistent HTTP/TCP connection reuse with the deterministic pool model using measured native evidence.
+- Add richer causal/conflict-resolution exhibits only when there is a concrete trace that needs vector clocks, CRDTs, or similar machinery.
+- Extract reusable production kernels only after a lab experiment proves a stable cross-repository owner is warranted.
