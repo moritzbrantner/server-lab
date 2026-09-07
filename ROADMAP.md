@@ -79,10 +79,49 @@
 - [x] Publish all five mechanisms as a dedicated `/systems` GitHub Pages lesson.
 - [x] Add explicit model contracts and deterministic tests for every Slice 6 tradeoff.
 
+### Slice 7A — global multiplayer ingress
+
+- [x] Model one logical multiplayer hostname in front of Frankfurt, Virginia, and Singapore signaling regions.
+- [x] Compare round-robin, geographic-proximity, and modeled latency-aware routing.
+- [x] Remove unhealthy regions from routing and expose explicit health failover.
+- [x] Model healthy-but-degraded regions through deterministic added RTT.
+- [x] Keep client-to-region RTT values as teaching constants rather than infrastructure benchmark claims.
+- [x] Publish a dedicated `/global` lesson with per-region routing evidence and a request trace.
+- [x] Keep room authority, WebRTC gameplay, TURN, DNS internals, and provider-specific routing outside this slice.
+- [x] Add a dedicated global-ingress contract and deterministic tests.
+
+## Global multiplayer roadmap
+
+### Slice 7B — regional room authority and directory
+
+- [ ] Give each newly created room exactly one home region rather than replicating live room/WebSocket state everywhere.
+- [ ] Add a small deterministic global `room -> region` directory model.
+- [ ] Show how two clients independently routed to different ingress regions converge on the same room owner.
+- [ ] Compare direct redirect, ingress proxying, and directory lookup costs without hiding their extra hops.
+- [ ] Compare room-placement policies such as creator-nearest, fixed region, minimum average RTT, and minimum worst-player RTT.
+- [ ] Model stale or unavailable directory entries fail-closed before adding any production multi-instance state to `multiplayer-setup-service`.
+
+### Slice 7C — control-plane versus gameplay latency
+
+- [ ] Separate room-create/join latency, WebSocket signaling latency, ICE negotiation time, and established gameplay RTT.
+- [ ] Demonstrate that moving the signaling region can improve setup latency without changing a direct peer-to-peer gameplay path.
+- [ ] Compare full-mesh and host-spoke multiplayer latency geometry, including the importance of host location in host-spoke mode.
+- [ ] Add a TURN-relay mode where relay geography becomes part of the gameplay data path.
+- [ ] Compare direct-first ICE with regional TURN fallback while keeping TURN credential/policy ownership outside the signaling-room model.
+
+### Slice 7D — regional multiplayer failure and recovery
+
+- [ ] Fail and partition individual signaling regions and the global room directory independently.
+- [ ] Distinguish rooms that are still establishing WebRTC from games whose peer DataChannels are already established.
+- [ ] Model reconnect/ICE-recovery cases where the control plane becomes necessary again after initial setup.
+- [ ] Fail individual TURN regions independently from signaling regions.
+- [ ] Reuse the existing recovery lesson's detection, failover, terms, and fencing concepts where they genuinely apply instead of duplicating them.
+- [ ] Add native multi-process or multi-host measurements only after the deterministic failure semantics are stable.
+
 ## Further horizons
 
 - Add packet-level delay, loss, reordering, jitter, and congestion only through an explicit OS/network-emulation contract; do not mislabel the TCP stream proxy as packet-level netem.
-- Reproduce selected cache, shard, and admission-control scenarios with real multi-process native experiments.
+- Reproduce selected cache, shard, admission-control, and global-ingress scenarios with real multi-process native experiments.
 - Compare persistent HTTP/TCP connection reuse with the deterministic pool model using measured native evidence.
 - Add richer causal/conflict-resolution exhibits only when there is a concrete trace that needs vector clocks, CRDTs, or similar machinery.
 - Extract reusable production kernels only after a lab experiment proves a stable cross-repository owner is warranted.

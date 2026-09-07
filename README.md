@@ -1,6 +1,6 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, caching, sharding, admission control, and real network conditions.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, caching, sharding, admission control, global routing, and real network conditions.
 
 The repository deliberately uses two different surfaces:
 
@@ -11,7 +11,7 @@ The browser models are not presented as infrastructure benchmarks, and the nativ
 
 ## Curriculum
 
-The teaching site has five top-level lessons.
+The teaching site has six top-level lessons.
 
 ### Routing & capacity
 
@@ -26,6 +26,18 @@ The shared stateless request model teaches:
 7. **Bursts and saturation** — temporary arrival spikes versus sustained service capacity.
 8. **Backpressure** — moving waiting toward the producer instead of allowing unbounded server-side work.
 9. **Little's Law** — relating measured throughput and mean request time to average requests in the system.
+
+### Global multiplayer ingress
+
+A dedicated deterministic lesson uses the multiplayer setup service as a concrete global-routing case study:
+
+1. **One hostname, several regions** — Frankfurt, Virginia, and Singapore sit behind `multiplayer.example.com`.
+2. **Routing policy** — compare round-robin, geographic proximity, and modeled latency-aware steering.
+3. **Health failover** — unhealthy regions are removed from eligibility and clients move to the next viable ingress.
+4. **Healthy-but-slow regions** — added RTT can make latency-aware steering move traffic while geographic routing stays put.
+5. **Control-plane boundary** — routing a player to an ingress is explicitly separated from room authority, WebRTC gameplay, and TURN relay placement.
+
+Slice 7A intentionally stops before distributed room state. The next multiplayer slices add room home regions, control-plane versus data-plane latency, and regional failure experiments.
 
 ### Replication & consistency
 
@@ -115,4 +127,4 @@ The teaching site is a static Next.js export suitable for GitHub Pages; the nati
 
 `server-lab` owns educational scenarios, deterministic simulation models, visualizations, and experiment harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery/coordination semantics, [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md) for the real-socket measurement boundary, and [`docs/contracts/deeper-systems.md`](docs/contracts/deeper-systems.md) for Slice 6 model boundaries.
+See [`ROADMAP.md`](ROADMAP.md) for the implementation slices, [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md) for routing/capacity semantics, [`docs/contracts/global-ingress.md`](docs/contracts/global-ingress.md) for Slice 7A global multiplayer routing semantics, [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md) for stateful replication, [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md) for recovery/coordination semantics, [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md) for the real-socket measurement boundary, and [`docs/contracts/deeper-systems.md`](docs/contracts/deeper-systems.md) for Slice 6 model boundaries.
