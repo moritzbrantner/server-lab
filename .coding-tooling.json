@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "profile": "repository-foundation-v1",
+  "tiers": {
+    "fast": ["format:check", "lint", "typecheck", "build", "test"],
+    "standard": [
+      "format:check",
+      "lint",
+      "typecheck",
+      "build",
+      "test",
+      "test:integration"
+    ]
+  },
+  "requiredCapabilities": ["build", "test"],
+  "optionalCapabilities": ["format:check", "lint", "typecheck", "test:integration"],
+  "capabilityCommands": {
+    ".": {
+      "format:check": ["cargo", "fmt", "--all", "--check"],
+      "lint": ["cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"],
+      "test": ["cargo", "test", "--workspace"],
+      "test:integration": [
+        "cargo",
+        "run",
+        "--quiet",
+        "-p",
+        "server-lab-native",
+        "--bin",
+        "experiment",
+        "--",
+        "10",
+        "5",
+        "5",
+        "1",
+        "1000"
+      ]
+    }
+  }
+}
