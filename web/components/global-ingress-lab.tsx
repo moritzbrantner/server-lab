@@ -85,10 +85,11 @@ export function GlobalIngressLab() {
           </p>
         </div>
         <aside className="global-boundary">
-          <strong>Control plane only.</strong>
+          <strong>Ingress boundary.</strong>
           <span>
-            This slice models how a player reaches a healthy signaling region. Room ownership, WebRTC gameplay,
-            and TURN relay placement remain separate later slices.
+            This 7A panel models how a player reaches a healthy signaling region. The 7B room-authority panel
+            below separately resolves all participants to one room owner; WebRTC gameplay and TURN remain later
+            slices.
           </span>
         </aside>
       </header>
@@ -322,9 +323,9 @@ export function GlobalIngressLab() {
           <h2>Routing a player is not the same as routing a room.</h2>
         </div>
         <p>
-          Slice 7A deliberately stops after global ingress. Slice 7B will give rooms a regional authority and a
-          small global directory so independently routed players can converge on the same room. Later slices will
-          separate signaling latency from WebRTC/TURN latency and then exercise regional failures.
+          Slice 7B below now gives each room one regional authority and a deterministic directory so independently
+          routed players converge on the same owner. Slice 7C is next: separate room-create/join and signaling
+          latency from ICE negotiation, direct peer gameplay RTT, and TURN-relay geography.
         </p>
       </footer>
     </main>
