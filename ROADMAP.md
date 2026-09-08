@@ -109,16 +109,18 @@
 - [x] Add a TURN-relay mode where relay geography becomes part of the gameplay data path.
 - [x] Compare direct-first ICE with regional TURN fallback while keeping TURN credential/policy ownership outside the signaling-room model.
 
-The deterministic `/global` lesson now separates control-plane setup from established gameplay paths and makes TURN geography explicit only when the relay is actually on the data path. Slice 7D is next: regional signaling, directory, and TURN failures can now be modeled independently against those established boundaries.
+The deterministic `/global` lesson separates control-plane setup from established gameplay paths and makes TURN geography explicit only when the relay is actually on the data path.
 
-### Slice 7D — regional multiplayer failure and recovery
+### Slice 7D — regional multiplayer failure and recovery — deterministic integration complete
 
-- [ ] Fail and partition individual signaling regions and the global room directory independently.
-- [ ] Distinguish rooms that are still establishing WebRTC from games whose peer DataChannels are already established.
-- [ ] Model reconnect/ICE-recovery cases where the control plane becomes necessary again after initial setup.
-- [ ] Fail individual TURN regions independently from signaling regions.
-- [ ] Reuse the existing recovery lesson's detection, failover, terms, and fencing concepts where they genuinely apply instead of duplicating them.
+- [x] Fail and partition individual signaling regions and the global room directory independently.
+- [x] Distinguish rooms that are still establishing WebRTC from games whose peer DataChannels are already established.
+- [x] Model reconnect/ICE-recovery cases where the control plane becomes necessary again after initial setup.
+- [x] Fail individual TURN regions independently from signaling regions.
+- [x] Reuse the existing recovery lesson's detection, failover, terms, and fencing concepts where they genuinely apply instead of duplicating them.
 - [ ] Add native multi-process or multi-host measurements only after the deterministic failure semantics are stable.
+
+The deterministic `/global` lesson now models lifecycle-scoped signaling, directory, and TURN failure; explicit ICE restart, room rejoin, and relay reallocation; and stateful directory-authority recovery using the existing election term and fencing model. Stateless signaling and TURN remain outside that election contract. Native multi-process or multi-host evidence remains deliberately open as measurement work rather than being inferred from the browser model.
 
 ## Further horizons
 

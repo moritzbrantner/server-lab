@@ -40,7 +40,7 @@ Gameplay is unavailable while the modeled DataChannel is being recovered. The co
 
 ## 7D-C: TURN failure and relay replacement
 
-The established gameplay path is now explicit as either **direct** or **TURN-relayed**.
+The established gameplay path is explicit as either **direct** or **TURN-relayed**.
 
 TURN health is scoped per relay region and remains independent from signaling health. A TURN outage affects gameplay only when that relay is actually on the established data path. Direct gameplay does not acquire a TURN dependency merely because TURN infrastructure exists elsewhere.
 
@@ -55,11 +55,32 @@ A failed relay is not silently replaced. Recovery uses an explicit **TURN reallo
 5. TURN reallocation requires signaling and the selected replacement relay to be available, but not a fresh directory lookup.
 6. A replacement relay that is failed or partitioned causes recovery to fail closed.
 
-## Deferred to the final 7D slice
+## 7D-D: recovery integration and authority fencing
 
-- failure detection and bounded failover timing;
-- directory/authority terms, epochs, and fencing;
-- the interactive failure/recovery teaching panel and roadmap integration;
-- native multi-process or multi-host measurements.
+The final deterministic slice reuses the existing recovery lesson instead of introducing a second generic coordination engine.
 
-Native measurements remain deferred until the deterministic failure semantics are stable.
+The global room directory is modeled as a **stateful authority**, so its leader recovery legitimately reuses the existing election semantics:
+
+- heartbeat-based failure detection remains distinct from the physical failure start;
+- promotion occurs only after the election timeout and election duration;
+- a successful replacement starts a higher term that acts as a fencing token;
+- if the previous leader later recovers, writes carrying its stale term are rejected.
+
+A short failure that ends before the modeled detection threshold does not trigger an unnecessary promotion. A longer failure can elect another healthy directory authority only when a majority remains available.
+
+Those coordination concepts are deliberately **not** copied onto stateless signaling or TURN services. A signaling or TURN region may fail, partition, or be explicitly replaced, but it does not receive an election term merely because the directory authority uses one.
+
+The `/global` lesson exposes the combined model interactively: lifecycle, signaling health, directory health, direct versus relayed gameplay, ICE/rejoin/relay recovery, and the directory-authority election trace can be inspected without conflating control-plane and gameplay dependencies.
+
+### Integration invariants
+
+1. Failure detection and failover completion remain separate moments rather than a single availability toggle.
+2. Directory authority promotion increments the term and fences a recovered stale writer.
+3. A failure that heals before detection does not create a new directory leader or term.
+4. Signaling and TURN failure semantics stay independent from directory election mechanics.
+5. The interactive lesson consumes the same deterministic models covered by tests rather than duplicating their decisions in presentation code.
+6. All timing and availability values remain teaching constants, not measured provider behavior.
+
+## Deferred measurement work
+
+Native multi-process or multi-host reproduction remains deliberately deferred. The deterministic Slice 7D semantics are now stable enough to define what such an experiment would need to measure, but this contract does not claim that the browser model has already been validated against real regional WebRTC, signaling, directory, or TURN infrastructure.
