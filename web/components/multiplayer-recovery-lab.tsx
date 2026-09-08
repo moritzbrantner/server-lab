@@ -44,6 +44,11 @@ export function MultiplayerRecoveryLab() {
     gameplayPath === "direct" && recoveryKind === "turn-reallocate"
       ? "ice-restart"
       : recoveryKind;
+  const effectiveReplacementTurnState =
+    replacementTurnRegionId === turnRegionId ? turnState : replacementTurnState;
+  const turnRelevant = gameplayPath === "turn";
+  const replacementRelevant =
+    lifecycle === "recovering" && effectiveRecoveryKind === "turn-reallocate";
 
   const result = useMemo(() => {
     const input: MultiplayerFailureInput = {
@@ -62,10 +67,9 @@ export function MultiplayerRecoveryLab() {
       input.turnRegionId = turnRegionId;
       input.turnStateByRegion = { [turnRegionId]: turnState };
 
-      if (lifecycle === "recovering" && effectiveRecoveryKind === "turn-reallocate") {
+      if (replacementRelevant) {
         input.replacementTurnRegionId = replacementTurnRegionId;
-        input.turnStateByRegion[replacementTurnRegionId] =
-          replacementTurnRegionId === turnRegionId ? turnState : replacementTurnState;
+        input.turnStateByRegion[replacementTurnRegionId] = effectiveReplacementTurnState;
       }
     }
 
@@ -73,10 +77,11 @@ export function MultiplayerRecoveryLab() {
   }, [
     directoryState,
     effectiveRecoveryKind,
+    effectiveReplacementTurnState,
     gameplayPath,
     lifecycle,
+    replacementRelevant,
     replacementTurnRegionId,
-    replacementTurnState,
     signalingRegionId,
     signalingState,
     turnRegionId,
@@ -95,10 +100,6 @@ export function MultiplayerRecoveryLab() {
       }),
     [],
   );
-
-  const turnRelevant = gameplayPath === "turn";
-  const replacementRelevant =
-    lifecycle === "recovering" && effectiveRecoveryKind === "turn-reallocate";
 
   return (
     <section className={styles.section} aria-labelledby="multiplayer-recovery-heading">
@@ -184,7 +185,7 @@ export function MultiplayerRecoveryLab() {
 
           <label>
             Replacement TURN state
-            <select value={replacementTurnState} onChange={(event) => setReplacementTurnState(event.target.value as RegionalServiceState)} disabled={!replacementRelevant}>
+            <select value={replacementTurnState} onChange={(event) => setReplacementTurnState(event.target.value as RegionalServiceState)} disabled={!replacementRelevant || replacementTurnRegionId === turnRegionId}>
               {SERVICE_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
             </select>
           </label>
@@ -226,7 +227,7 @@ export function MultiplayerRecoveryLab() {
                   {replacementRelevant ? (
                     <tr>
                       <td>Replacement TURN · {regionLabel(replacementTurnRegionId)}</td>
-                      <td className={replacementTurnState === "available" ? styles.good : styles.bad}>{replacementTurnRegionId === turnRegionId ? turnState : replacementTurnState}</td>
+                      <td className={effectiveReplacementTurnState === "available" ? styles.good : styles.bad}>{effectiveReplacementTurnState}</td>
                       <td>recovery target</td>
                       <td className={styles.muted}>Used only by the explicit TURN reallocation operation.</td>
                     </tr>
