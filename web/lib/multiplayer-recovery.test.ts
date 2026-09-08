@@ -113,7 +113,112 @@ describe("regional multiplayer failure semantics", () => {
     expect(result.explanation).toContain("Rejoin is blocked");
   });
 
-  test("recovery mode must be explicit only while recovering", () => {
+  test("TURN outages do not affect an established direct gameplay path", () => {
+    const result = simulateMultiplayerFailure({
+      lifecycle: "established",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "available",
+      gameplayPath: "direct",
+      turnStateByRegion: { "eu-central": "failed" },
+    });
+
+    expect(result.gameplayAvailable).toBe(true);
+    expect(result.recoveryRequired).toBe(false);
+    expect(result.turnAvailable).toBeNull();
+    expect(result.blockers.some((blocker) => blocker.service === "turn")).toBe(false);
+  });
+
+  test("failure of the active TURN region breaks an established relayed gameplay path", () => {
+    const result = simulateMultiplayerFailure({
+      lifecycle: "established",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "available",
+      gameplayPath: "turn",
+      turnRegionId: "eu-central",
+      turnStateByRegion: { "eu-central": "failed" },
+    });
+
+    expect(result.signalingAvailable).toBe(true);
+    expect(result.turnAvailable).toBe(false);
+    expect(result.gameplayAvailable).toBe(false);
+    expect(result.recoveryRequired).toBe(true);
+    expect(result.blockers).toContainEqual({
+      service: "turn",
+      state: "failed",
+      regionId: "eu-central",
+    });
+  });
+
+  test("TURN failure is scoped to the relay region actually on the data path", () => {
+    const result = simulateMultiplayerFailure({
+      lifecycle: "established",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "available",
+      gameplayPath: "turn",
+      turnRegionId: "ap-southeast",
+      turnStateByRegion: { "eu-central": "failed" },
+    });
+
+    expect(result.turnAvailable).toBe(true);
+    expect(result.gameplayAvailable).toBe(true);
+    expect(result.recoveryRequired).toBe(false);
+  });
+
+  test("a failed relay is replaced only through an explicit ICE recovery operation", () => {
+    const failedPath = simulateMultiplayerFailure({
+      lifecycle: "established",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "failed",
+      gameplayPath: "turn",
+      turnRegionId: "eu-central",
+      turnStateByRegion: { "eu-central": "failed" },
+    });
+    expect(failedPath.gameplayAvailable).toBe(false);
+
+    const recovery = simulateMultiplayerFailure({
+      lifecycle: "recovering",
+      recoveryKind: "turn-reallocate",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "failed",
+      gameplayPath: "turn",
+      turnRegionId: "eu-central",
+      replacementTurnRegionId: "us-east",
+      turnStateByRegion: { "eu-central": "failed", "us-east": "available" },
+    });
+
+    expect(recovery.requiredControlPlane).toEqual(["signaling"]);
+    expect(recovery.replacementTurnAvailable).toBe(true);
+    expect(recovery.recoveryAvailable).toBe(true);
+    expect(recovery.explanation).toContain("explicit ICE recovery operation");
+  });
+
+  test("TURN reallocation fails closed when the replacement relay is unavailable", () => {
+    const result = simulateMultiplayerFailure({
+      lifecycle: "recovering",
+      recoveryKind: "turn-reallocate",
+      signalingRegionId: "eu-central",
+      signalingStateByRegion: {},
+      directoryState: "available",
+      gameplayPath: "turn",
+      turnRegionId: "eu-central",
+      replacementTurnRegionId: "us-east",
+      turnStateByRegion: { "eu-central": "failed", "us-east": "partitioned" },
+    });
+
+    expect(result.recoveryAvailable).toBe(false);
+    expect(result.blockers).toContainEqual({
+      service: "turn",
+      state: "partitioned",
+      regionId: "us-east",
+    });
+  });
+
+  test("recovery mode and TURN path ownership must be explicit", () => {
     expect(() =>
       simulateMultiplayerFailure({
         lifecycle: "recovering",
@@ -132,5 +237,27 @@ describe("regional multiplayer failure semantics", () => {
         directoryState: "available",
       }),
     ).toThrow("valid only while recovering");
+
+    expect(() =>
+      simulateMultiplayerFailure({
+        lifecycle: "established",
+        signalingRegionId: "eu-central",
+        signalingStateByRegion: {},
+        directoryState: "available",
+        gameplayPath: "turn",
+      }),
+    ).toThrow("active relay region");
+
+    expect(() =>
+      simulateMultiplayerFailure({
+        lifecycle: "recovering",
+        recoveryKind: "turn-reallocate",
+        signalingRegionId: "eu-central",
+        signalingStateByRegion: {},
+        directoryState: "available",
+        gameplayPath: "turn",
+        turnRegionId: "eu-central",
+      }),
+    ).toThrow("replacement relay region");
   });
 });
