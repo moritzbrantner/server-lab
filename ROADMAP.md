@@ -101,13 +101,15 @@
 - [x] Compare room-placement policies such as creator-nearest, fixed region, minimum average RTT, and minimum worst-player RTT.
 - [x] Model stale or unavailable directory entries fail-closed before adding any production multi-instance state to `multiplayer-setup-service`.
 
-### Slice 7C — control-plane versus gameplay latency
+### Slice 7C — control-plane versus gameplay latency — integrated
 
-- [ ] Separate room-create/join latency, WebSocket signaling latency, ICE negotiation time, and established gameplay RTT.
-- [ ] Demonstrate that moving the signaling region can improve setup latency without changing a direct peer-to-peer gameplay path.
-- [ ] Compare full-mesh and host-spoke multiplayer latency geometry, including the importance of host location in host-spoke mode.
-- [ ] Add a TURN-relay mode where relay geography becomes part of the gameplay data path.
-- [ ] Compare direct-first ICE with regional TURN fallback while keeping TURN credential/policy ownership outside the signaling-room model.
+- [x] Separate room-create/join latency, WebSocket signaling latency, ICE negotiation time, and established gameplay RTT.
+- [x] Demonstrate that moving the signaling region can improve setup latency without changing a direct peer-to-peer gameplay path.
+- [x] Compare full-mesh and host-spoke multiplayer latency geometry, including the importance of host location in host-spoke mode.
+- [x] Add a TURN-relay mode where relay geography becomes part of the gameplay data path.
+- [x] Compare direct-first ICE with regional TURN fallback while keeping TURN credential/policy ownership outside the signaling-room model.
+
+The deterministic `/global` lesson now separates control-plane setup from established gameplay paths and makes TURN geography explicit only when the relay is actually on the data path. Slice 7D is next: regional signaling, directory, and TURN failures can now be modeled independently against those established boundaries.
 
 ### Slice 7D — regional multiplayer failure and recovery
 
