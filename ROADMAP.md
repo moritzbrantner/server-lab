@@ -92,14 +92,14 @@
 
 ## Global multiplayer roadmap
 
-### Slice 7B — regional room authority and directory
+### Slice 7B — regional room authority and directory — integrated
 
-- [ ] Give each newly created room exactly one home region rather than replicating live room/WebSocket state everywhere.
-- [ ] Add a small deterministic global `room -> region` directory model.
-- [ ] Show how two clients independently routed to different ingress regions converge on the same room owner.
-- [ ] Compare direct redirect, ingress proxying, and directory lookup costs without hiding their extra hops.
-- [ ] Compare room-placement policies such as creator-nearest, fixed region, minimum average RTT, and minimum worst-player RTT.
-- [ ] Model stale or unavailable directory entries fail-closed before adding any production multi-instance state to `multiplayer-setup-service`.
+- [x] Give each newly created room exactly one home region rather than replicating live room/WebSocket state everywhere.
+- [x] Add a small deterministic global `room -> region` directory model.
+- [x] Show how two clients independently routed to different ingress regions converge on the same room owner.
+- [x] Compare direct redirect, ingress proxying, and directory lookup costs without hiding their extra hops.
+- [x] Compare room-placement policies such as creator-nearest, fixed region, minimum average RTT, and minimum worst-player RTT.
+- [x] Model stale or unavailable directory entries fail-closed before adding any production multi-instance state to `multiplayer-setup-service`.
 
 ### Slice 7C — control-plane versus gameplay latency
 
