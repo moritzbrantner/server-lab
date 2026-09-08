@@ -7,7 +7,7 @@ Slice 7D extends the deterministic global multiplayer lesson with failure semant
 The model distinguishes two lifecycle states before recovery is needed:
 
 - **establishing**: room lookup and the selected signaling region are required before a peer DataChannel exists;
-- **established**: a healthy direct peer DataChannel already exists, so directory and signaling services are no longer on the gameplay data path.
+- **established**: a healthy peer DataChannel already exists, so directory and signaling services are no longer on the gameplay data path.
 
 Signaling health is scoped per region. A failed or partitioned region affects sessions that selected that region, but does not implicitly fail other signaling regions. The global room directory can fail or partition independently from signaling.
 
@@ -38,11 +38,28 @@ Gameplay is unavailable while the modeled DataChannel is being recovered. The co
 4. A full rejoin requires both directory lookup and signaling.
 5. Recovery kind is explicit; the model does not silently convert a blocked ICE restart into a different recovery operation.
 
-## Deferred to later 7D slices
+## 7D-C: TURN failure and relay replacement
 
-- TURN-region failure and relay replacement;
+The established gameplay path is now explicit as either **direct** or **TURN-relayed**.
+
+TURN health is scoped per relay region and remains independent from signaling health. A TURN outage affects gameplay only when that relay is actually on the established data path. Direct gameplay does not acquire a TURN dependency merely because TURN infrastructure exists elsewhere.
+
+A failed relay is not silently replaced. Recovery uses an explicit **TURN reallocation** operation: signaling becomes necessary again and a replacement relay region must be selected and available. A fresh room-directory lookup is not required for this modeled relay replacement because the session identity and room ownership remain known.
+
+### TURN invariants
+
+1. Failure of any TURN region cannot affect an established direct DataChannel.
+2. Failure of the active TURN region immediately makes the relayed gameplay path unavailable even when signaling is healthy.
+3. Failure of an unrelated TURN region cannot affect a relayed path through a different healthy region.
+4. TURN recovery requires an explicit ICE recovery operation; the model never auto-switches relays behind an established session.
+5. TURN reallocation requires signaling and the selected replacement relay to be available, but not a fresh directory lookup.
+6. A replacement relay that is failed or partitioned causes recovery to fail closed.
+
+## Deferred to the final 7D slice
+
 - failure detection and bounded failover timing;
 - directory/authority terms, epochs, and fencing;
+- the interactive failure/recovery teaching panel and roadmap integration;
 - native multi-process or multi-host measurements.
 
-Those behaviors are added only after their lifecycle and ownership boundaries are explicit.
+Native measurements remain deferred until the deterministic failure semantics are stable.
