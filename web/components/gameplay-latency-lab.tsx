@@ -138,7 +138,7 @@ export function GameplayLatencyLab() {
           <section>
             <div className={styles.sectionHeading}>
               <h3>Move only the signaling region</h3>
-              <p>Direct gameplay stays unchanged; setup does not.</p>
+              <p>Established gameplay stays unchanged; setup does not.</p>
             </div>
             <div className={styles.tableWrap}>
               <table>
