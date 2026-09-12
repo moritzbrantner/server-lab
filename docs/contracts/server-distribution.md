@@ -47,8 +47,10 @@ Draining is distinct from failure: draining processes are healthy but receive no
 7. Failure comparison distinguishes forced moves from cascade churn.
 8. All decisions remain deterministic for identical topology and workload inputs.
 
-## Possible `server-setup` extraction boundary
+## Possible fleet-scheduler extraction boundary
 
-This slice is closer to a future reusable `server-setup` primitive than the game-domain models. A reusable scheduler could consume discovered process topology, health, drain state, capacity, failure-domain identity, and stable workload identity, then return a deterministic target process.
+This slice is infrastructure-shaped but remains above host bootstrap. A reusable fleet scheduler could consume discovered process topology, health, drain state, capacity, failure-domain identity, and stable workload identity, then return a deterministic target process inside the already-selected region.
+
+`game-server` should expose truthful process/match capacity, readiness, and drain state; a fleet scheduler can consume those facts. `server-setup` may expose or validate host-level facts and prerequisites, but application/process placement is outside its current host-management boundary.
 
 Actual host discovery, cloud provisioning, containers, service managers, deployment rollout, persistence, and game state migration remain outside the lab model until concrete production requirements prove those interfaces.
