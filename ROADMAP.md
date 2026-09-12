@@ -136,9 +136,9 @@ The native `multiplayer-recovery-experiment` launches independent loopback proce
 - [x] Add power-of-two choices with deterministic candidate selection and load-aware choice.
 - [x] Measure failed placements, mean/worst player RTT, per-region utilization, forced moves, and cascade churn.
 - [x] Verify that rendezvous hashing causes no avoidable moves from still-healthy owners after one region fails when spare capacity exists.
-- [x] Publish the fleet-placement comparison in `/global` and document a narrow possible `server-setup` extraction contract.
+- [x] Publish the fleet-placement comparison in `/global` and document the possible region-scheduler extraction contract.
 
-Slice 8 owns only the region decision. It consumes health, capacity/load evidence, stable room identity, and deterministic participant-latency evidence. It does not provision servers or own game rules.
+Slice 8 owns only the region decision. It consumes health, capacity/load evidence, stable room identity, and deterministic participant-latency evidence. It does not provision servers or own game rules. Under the current repository boundaries, a future fleet scheduler beside `game-server` is a more appropriate extraction target than `server-setup`.
 
 ### Slice 9 — hierarchical server distribution — completed
 
@@ -150,9 +150,9 @@ Slice 8 owns only the region decision. It consumes health, capacity/load evidenc
 - [x] Distinguish host failure from graceful draining.
 - [x] Classify forced moves separately from cascade churn after a host failure.
 - [x] Verify rendezvous stability on still-healthy processes when remaining capacity is sufficient.
-- [x] Publish the process-distribution comparison in `/global` and document the generic scheduler boundary that may later fit `server-setup`.
+- [x] Publish the process-distribution comparison in `/global` and document the generic scheduler boundary.
 
-Slice 9 establishes a generic infrastructure-shaped scheduling boundary without claiming that the lab owns real host discovery, cloud provisioning, containers, deployment rollout, persistence, or live game-state migration.
+Slice 9 establishes a generic infrastructure-shaped scheduling boundary without claiming that the lab owns real host discovery, cloud provisioning, containers, deployment rollout, persistence, or live game-state migration. It also does not make application scheduling a `server-setup` responsibility: host setup may expose facts, while a higher-level fleet scheduler owns workload placement.
 
 ### Slice 10 — packet-level network emulation — completed
 
@@ -167,7 +167,19 @@ Slice 9 establishes a generic infrastructure-shaped scheduling boundary without 
 - [x] Clean namespaces and child processes on success or failure.
 - [x] Run the packet-level experiment as a Linux CI gate and publish the boundary on `/native`.
 
-The netem slice is single-host kernel evidence, not a claim about physical WANs, provider routing, or geographic Internet performance. Its useful future extraction boundary is an opt-in test-topology capability; production interfaces must never inherit laboratory qdiscs.
+The netem slice is single-host kernel evidence, not a claim about physical WANs, provider routing, or geographic Internet performance. Its useful `server-setup` extraction boundary is limited to an opt-in host-test topology capability; production interfaces must never inherit laboratory qdiscs.
+
+### Slice 11 — real `game-server` WebTransport / QUIC under netem — completed cross-repository
+
+- [x] Apply the Slice 10 namespace/qdisc boundary to the extracted `game-server` runtime rather than extending the lab's older authoritative proof.
+- [x] Verify the reliable WebTransport welcome stream under packet impairment.
+- [x] Exercise realtime command and authoritative-snapshot datagrams under bidirectional delay, jitter, loss, reordering, and rate limiting.
+- [x] Require idempotent final-command retransmission to converge to the same authoritative applied sequence.
+- [x] Reject stale/reordered snapshot ticks and require several strictly advancing accepted snapshots.
+- [x] Introduce a 450 ms 100%-packet-loss interval and verify recovery on the same QUIC connection epoch.
+- [x] Keep qdisc/timing/loss values as evidence rather than Internet/provider benchmark claims.
+
+The implementation and CI gate live in `game-server`, which now owns the reusable server-authoritative runtime. `server-lab` owns the impairment semantics and documents the experimental boundary instead of duplicating production-shaped transport code.
 
 ## Server-authoritative multiplayer roadmap
 
@@ -198,16 +210,18 @@ This track is the client-to-server sibling of the P2P architecture explored thro
 - [x] Interpolate remote players without extrapolating them beyond the newest server state.
 - [x] Add deterministic presentation tests and a browser bundle gate.
 
+These slices proved the boundary that was subsequently extracted into `game-server`. New production-shaped authoritative runtime work should normally happen there, while this repository remains the experimental owner of models and comparative evidence.
+
 Gameplay-specific services such as inventory transactions, persistence, match recovery, authoritative physics, and live multi-process world migration are intentionally not unfinished transport work. They should be introduced only for a concrete game that needs them and should reuse their proper owning repositories where possible.
 
 ## Further horizons
 
 These are research/experiment directions rather than incomplete roadmap commitments:
 
-- Run the authoritative WebTransport/QUIC transport through the established namespace/netem harness and compare stream versus datagram behavior under identical impairments.
+- Extend the `game-server` netem scenarios to longer outages, path changes, migration, or separate stream/datagram stress only when a concrete reliability question needs the evidence.
 - Reproduce selected fleet-placement and host/process-distribution scenarios with real multi-host or multi-region infrastructure when a concrete production decision justifies the cost.
 - Reproduce selected cache, shard, and admission-control scenarios with real native processes when there is a concrete measurement question.
 - Compare persistent HTTP/TCP connection reuse with the deterministic pool model using measured native evidence.
 - Run multiplayer recovery across actual hosts/regions only when there is a concrete infrastructure decision to validate.
 - Add richer causal/conflict-resolution exhibits only when there is a concrete trace that needs vector clocks, CRDTs, or similar machinery.
-- Extract reusable production kernels into repositories such as `server-setup` only after the lab contract has proved stable and more than one concrete consumer benefits from the abstraction.
+- Extract reusable production kernels only into repositories that own the responsibility: `game-server` or a fleet scheduler for workload placement, and `server-setup` only for host-management/test prerequisites.
