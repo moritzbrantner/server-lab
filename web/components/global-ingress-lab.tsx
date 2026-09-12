@@ -87,9 +87,9 @@ export function GlobalIngressLab() {
         <aside className="global-boundary">
           <strong>Ingress boundary.</strong>
           <span>
-            This 7A panel models how a player reaches a healthy signaling region. The 7B room-authority panel
-            below separately resolves all participants to one room owner; WebRTC gameplay and TURN remain later
-            slices.
+            This 7A panel models how a player reaches a healthy signaling region. The completed 7B–7D panels
+            below add regional room authority, control-plane versus gameplay-path latency, TURN geography, and
+            lifecycle-scoped failure/recovery without changing this ingress model.
           </span>
         </aside>
       </header>
@@ -320,12 +320,13 @@ export function GlobalIngressLab() {
       <footer className="global-next">
         <div>
           <p className="eyebrow">boundary</p>
-          <h2>Routing a player is not the same as routing a room.</h2>
+          <h2>Routing a player is not the same as routing a room or carrying gameplay.</h2>
         </div>
         <p>
-          Slice 7B below now gives each room one regional authority and a deterministic directory so independently
-          routed players converge on the same owner. Slice 7C is next: separate room-create/join and signaling
-          latency from ICE negotiation, direct peer gameplay RTT, and TURN-relay geography.
+          Slices 7B–7D below complete the progression from regional room ownership through control-plane versus
+          gameplay-path latency to explicit signaling, directory, and TURN failure/recovery. Native loopback
+          process evidence now checks the same dependency separation without turning those measurements into
+          provider or regional performance claims.
         </p>
       </footer>
     </main>
