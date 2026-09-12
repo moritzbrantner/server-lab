@@ -22,6 +22,10 @@ jobs:
       - run: cargo run --quiet --locked -p server-lab-native --bin experiment -- 10 5 5 1 1000
       - name: Run native multiplayer recovery experiment
         run: cargo run --quiet --locked -p server-lab-native --bin multiplayer-recovery-experiment
+      - name: Build packet-level netem probes
+        run: cargo build --locked -p server-lab-native --bin server --bin client --bin netem-udp
+      - name: Run packet-level netem experiment
+        run: sudo bash native/netem/experiment.sh
 
   web:
     runs-on: ubuntu-latest

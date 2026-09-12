@@ -1,11 +1,11 @@
 # server-lab
 
-`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, caching, sharding, admission control, global routing, and real network conditions.
+`server-lab` is an interactive laboratory for learning how server systems behave under load, latency, replication, consistency, overload, failure, recovery, coordination, caching, sharding, admission control, global routing, placement, distribution, and real network conditions.
 
 The repository deliberately uses three different surfaces:
 
 - **Browser laboratory** — deterministic, visual simulations published with GitHub Pages.
-- **Native experiments** — real Rust processes and sockets where operating-system/network behavior is itself part of the lesson.
+- **Native experiments** — real Rust processes, sockets, Linux network namespaces, and packet-level network emulation where operating-system/network behavior is itself part of the lesson.
 - **Authoritative multiplayer proof** — a separate Rust/WebTransport experiment where the server owns canonical game state and browser prediction remains presentation-only.
 
 The browser models are not presented as infrastructure benchmarks, and native timing results are not treated as deterministic correctness data. The repository makes those boundaries explicit so simplified expectations can be compared with measured evidence without conflating them.
@@ -28,9 +28,9 @@ The shared stateless request model teaches:
 8. **Backpressure** — moving waiting toward the producer instead of allowing unbounded server-side work.
 9. **Little's Law** — relating measured throughput and mean request time to average requests in the system.
 
-### Global multiplayer ingress
+### Global multiplayer and distribution
 
-A dedicated deterministic lesson uses the multiplayer setup service as a concrete global-routing case study:
+A dedicated deterministic lesson uses multiplayer infrastructure as a concrete global-routing and scheduling case study:
 
 1. **One hostname, several regions** — Frankfurt, Virginia, and Singapore sit behind `multiplayer.example.com`.
 2. **Routing policy** — compare round-robin, geographic proximity, and modeled latency-aware steering.
@@ -38,6 +38,10 @@ A dedicated deterministic lesson uses the multiplayer setup service as a concret
 4. **Control plane versus gameplay path** — room lookup, signaling, direct WebRTC, host-spoke/full-mesh geometry, and TURN relay geography are modeled separately.
 5. **Failure and recovery** — directory, signaling, gameplay, and TURN failures have lifecycle-specific effects; ICE restart, rejoin, relay replacement, election terms, and fencing are explicit.
 6. **Native process evidence** — the stable dependency boundaries are reproduced by independent loopback processes without claiming regional/provider timing realism.
+7. **Fleet-level region placement** — compare minimum-average RTT, minimum-worst-player RTT, load-aware placement, rendezvous hashing, and power-of-two choices while enforcing hard regional capacity.
+8. **Placement stability** — regional failure distinguishes unavoidable room movement from avoidable cascade churn.
+9. **Hierarchical distribution** — already region-owned rooms are scheduled across hosts and processes without allowing process scheduling to silently reopen the region decision.
+10. **Failure domains and draining** — host failure, process health, hard capacity, and graceful draining are modeled as distinct scheduling evidence.
 
 ### Replication & consistency
 
@@ -68,17 +72,18 @@ A third deterministic model makes recovery timing and coordination explicit:
 
 ### Native network experiments
 
-The Rust layer leaves the deterministic simulator and exercises real localhost sockets and processes:
+The Rust layer leaves the deterministic simulator and exercises real sockets, processes, and kernel network paths:
 
 1. **TCP server** — a tiny `PING` / `PONG` request-response service.
 2. **Probe client** — measures real connect/write/read latency and success.
-3. **Fault proxy** — adds deterministic per-direction delay and drops every Nth accepted connection.
-4. **Expected-vs-measured runner** — compares a direct baseline with the impaired path and emits JSON evidence.
-5. **Multi-process multiplayer recovery** — spawns directory, signaling, direct-gameplay, and TURN processes, terminates them independently, and verifies the Slice 7D dependency boundaries with real sockets.
-6. **Real-socket integration tests** — bind ephemeral ports and verify end-to-end behavior in CI.
-7. **Machine-readable receipts** — suitable for capture by `runtime-profiler` without making it a hard dependency.
+3. **Fault proxy** — adds deterministic per-direction delay and drops every Nth accepted connection at request/connection granularity.
+4. **Expected-vs-measured runner** — compares a direct baseline with the impaired proxy path and emits JSON evidence.
+5. **Multi-process multiplayer recovery** — spawns directory, signaling, direct-gameplay, and TURN processes, terminates them independently, and verifies the lifecycle dependency boundaries with real sockets.
+6. **Packet-level netem** — isolated Linux network namespaces and `tc netem` apply delay, jitter, packet loss, duplication, reordering, and rate limits to real packet paths rather than application handlers.
+7. **UDP sequence evidence** — numbered datagrams expose packet loss, duplication, and reordering that TCP intentionally hides from application delivery.
+8. **Machine-readable receipts** — native experiments emit evidence suitable for capture by `runtime-profiler` without making it a hard dependency.
 
-The native layer deliberately does not claim stable benchmark numbers. Exact wall-clock timing is noisy; semantic outcomes and directional effects are the gate.
+The native layer deliberately does not claim stable benchmark numbers. Exact wall-clock timing is noisy; semantic outcomes and broad directional effects are the gate.
 
 ### Deeper systems
 
@@ -139,6 +144,15 @@ cargo run --locked -p server-lab-native --bin fault-proxy -- 127.0.0.1:9100 127.
 cargo run --locked -p server-lab-native --bin client -- 127.0.0.1:9100 20 1000 0
 ```
 
+For the Linux-only packet-level experiment:
+
+```bash
+cargo build --locked -p server-lab-native --bin server --bin client --bin netem-udp
+sudo bash native/netem/experiment.sh
+```
+
+The script creates isolated network namespaces and removes them on exit. Do not apply the laboratory qdiscs to a production interface.
+
 ### Authoritative WebTransport
 
 Provide a browser-trusted TLS certificate/key for local development, then run:
@@ -156,8 +170,15 @@ The teaching site is a static Next.js export suitable for GitHub Pages; native a
 
 ## Repository boundaries
 
-`server-lab` owns educational scenarios, deterministic simulation models, visualizations, transport/game-authority experiments, and measurement harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
+`server-lab` owns educational scenarios, deterministic simulation models, visualizations, transport/game-authority experiments, placement/distribution experiments, and measurement harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-Gameplay-specific persistence, inventories, match recovery, authoritative physics, and multi-process world placement are not unfinished networking work. They should be introduced only for a concrete game that needs them, with reusable owners such as `physics-engine` remaining authoritative for their domain.
+The current placement work intentionally separates two possible future `server-setup` boundaries:
 
-See [`ROADMAP.md`](ROADMAP.md), [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md), [`docs/contracts/global-ingress.md`](docs/contracts/global-ingress.md), [`docs/contracts/multiplayer-recovery.md`](docs/contracts/multiplayer-recovery.md), [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md), [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md), [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md), [`docs/contracts/deeper-systems.md`](docs/contracts/deeper-systems.md), and [`docs/contracts/authoritative-multiplayer.md`](docs/contracts/authoritative-multiplayer.md).
+- **region placement contract** — eligible regions, health/capacity/load evidence, participant latency evidence, stable workload identity, and a deterministic placement decision;
+- **process distribution contract** — already-owned region, discovered host/process topology, failure-domain identity, health/drain state, hard capacity, stable workload identity, and a deterministic target process.
+
+The netem harness suggests a third optional test-infrastructure boundary: construct isolated Linux test links, apply declared impairment profiles, run a supplied workload, and capture receipts. It must never leak impairment into production networking.
+
+Gameplay-specific persistence, inventories, match recovery, authoritative physics, and actual live game-state migration remain outside these generic scheduling/network-test contracts. They should be introduced only for a concrete game that needs them, with reusable owners such as `physics-engine` remaining authoritative for their domain.
+
+See [`ROADMAP.md`](ROADMAP.md), [`docs/contracts/simulation-model.md`](docs/contracts/simulation-model.md), [`docs/contracts/global-ingress.md`](docs/contracts/global-ingress.md), [`docs/contracts/multiplayer-recovery.md`](docs/contracts/multiplayer-recovery.md), [`docs/contracts/fleet-placement.md`](docs/contracts/fleet-placement.md), [`docs/contracts/server-distribution.md`](docs/contracts/server-distribution.md), [`docs/contracts/replication-model.md`](docs/contracts/replication-model.md), [`docs/contracts/recovery-model.md`](docs/contracts/recovery-model.md), [`docs/contracts/native-experiments.md`](docs/contracts/native-experiments.md), [`docs/contracts/netem.md`](docs/contracts/netem.md), [`docs/contracts/deeper-systems.md`](docs/contracts/deeper-systems.md), and [`docs/contracts/authoritative-multiplayer.md`](docs/contracts/authoritative-multiplayer.md).
