@@ -111,21 +111,57 @@
 
 The deterministic `/global` lesson separates control-plane setup from established gameplay paths and makes TURN geography explicit only when the relay is actually on the data path.
 
-### Slice 7D — regional multiplayer failure and recovery — deterministic integration complete
+### Slice 7D — regional multiplayer failure and recovery — completed
 
 - [x] Fail and partition individual signaling regions and the global room directory independently.
 - [x] Distinguish rooms that are still establishing WebRTC from games whose peer DataChannels are already established.
 - [x] Model reconnect/ICE-recovery cases where the control plane becomes necessary again after initial setup.
 - [x] Fail individual TURN regions independently from signaling regions.
 - [x] Reuse the existing recovery lesson's detection, failover, terms, and fencing concepts where they genuinely apply instead of duplicating them.
-- [ ] Add native multi-process or multi-host measurements only after the deterministic failure semantics are stable.
+- [x] Add native multi-process reproduction once deterministic failure semantics are stable.
 
-The deterministic `/global` lesson now models lifecycle-scoped signaling, directory, and TURN failure; explicit ICE restart, room rejoin, and relay reallocation; and stateful directory-authority recovery using the existing election term and fencing model. Stateless signaling and TURN remain outside that election contract. Native multi-process or multi-host evidence remains deliberately open as measurement work rather than being inferred from the browser model.
+The deterministic `/global` lesson models lifecycle-scoped signaling, directory, and TURN failure; explicit ICE restart, room rejoin, and relay reallocation; and stateful directory-authority recovery using the existing election term and fencing model. Stateless signaling and TURN remain outside that election contract.
+
+The native `multiplayer-recovery-experiment` now launches independent loopback processes for directory, signaling, direct gameplay, and TURN, kills them independently, and gates the expected dependency separation using real sockets. Its wall-clock timings are evidence only and are not presented as regional/provider measurements.
+
+## Server-authoritative multiplayer roadmap
+
+This track is the client-to-server sibling of the P2P architecture explored through `multiplayer-setup-service`. It lives in the isolated `authoritative` crate so transport choice cannot redefine game authority.
+
+### Slice A — deterministic authority kernel — integrated
+
+- [x] Add one server-owned 20 Hz world for up to 16 players.
+- [x] Assign identity from the accepted connection rather than trusting a player id in input payloads.
+- [x] Keep client input intent-only and apply state mutation only on authoritative ticks.
+- [x] Ignore duplicate/stale input idempotently with monotonic sequences.
+- [x] Emit bounded canonical snapshots and deterministic state hashes.
+- [x] Add a native TCP harness with fail-closed admission cleanup and latest-state backpressure.
+
+### Slice B — WebTransport / HTTP/3 — integrated
+
+- [x] Add a Rust WebTransport/QUIC adapter without moving authority semantics out of the kernel.
+- [x] Send session/welcome metadata over a reliable unidirectional stream.
+- [x] Use bounded datagrams for realtime client input and authoritative snapshots.
+- [x] Require sufficient datagram capacity and explicit TLS identity configuration.
+- [x] Add a browser-to-Rust client proof and lock the Rust dependency graph in CI.
+
+### Slice C — client presentation prediction and reconciliation — integrated
+
+- [x] Predict only the local player's presentation state and keep server snapshots canonical.
+- [x] Use authoritative `lastAppliedSequence` to prune acknowledged local inputs.
+- [x] Bound local visual prediction and reset it from newer canonical snapshots.
+- [x] Interpolate remote players without extrapolating them beyond the newest server state.
+- [x] Add deterministic presentation tests and a browser bundle gate.
+
+Gameplay-specific services such as inventory transactions, persistence, match recovery, authoritative physics, and multi-process world placement are intentionally not unfinished transport work. They should be introduced only for a concrete game that needs them and should reuse their proper owning repositories where possible.
 
 ## Further horizons
 
+These are research/experiment directions rather than incomplete roadmap commitments:
+
 - Add packet-level delay, loss, reordering, jitter, and congestion only through an explicit OS/network-emulation contract; do not mislabel the TCP stream proxy as packet-level netem.
-- Reproduce selected cache, shard, admission-control, and global-ingress scenarios with real multi-process native experiments.
+- Reproduce selected cache, shard, admission-control, and global-ingress scenarios with real multi-process or multi-host experiments when a concrete measurement question justifies them.
 - Compare persistent HTTP/TCP connection reuse with the deterministic pool model using measured native evidence.
+- Run the multiplayer recovery experiment across actual hosts/regions only when there is a concrete infrastructure decision to validate.
 - Add richer causal/conflict-resolution exhibits only when there is a concrete trace that needs vector clocks, CRDTs, or similar machinery.
 - Extract reusable production kernels only after a lab experiment proves a stable cross-repository owner is warranted.
