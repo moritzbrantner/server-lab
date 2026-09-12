@@ -28,12 +28,14 @@ Direct peer RTTs and client-to-region RTTs are teaching constants. A TURN path i
 4. Full-mesh and host-spoke path sets are explicit and deterministic.
 5. No number from this model is described as measured provider, Internet, WebRTC, or TURN performance.
 
-## Out of scope
+## Scope boundary
 
-- TURN credentials, authentication, quotas, or provider selection
-- real NAT traversal success probabilities
-- packet loss, jitter, reordering, congestion, codecs, or application frame timing
-- signaling/directory/TURN regional failure recovery; that is Slice 7D
-- native multi-host or Internet measurements
+This Slice 7C contract intentionally does not own:
 
-Those concerns can be added only when their ownership and measurement contracts are explicit.
+- TURN credentials, authentication, quotas, or provider selection;
+- real NAT traversal success probabilities;
+- packet loss, jitter, reordering, congestion, codecs, or application frame timing;
+- signaling/directory/TURN regional failure and recovery semantics, which are owned by the completed Slice 7D contract;
+- real multi-host or Internet measurements.
+
+Slice 7D now supplies deterministic regional failure/recovery semantics plus native single-host multi-process evidence. That evidence remains separate from this latency model and does not turn its teaching constants into production measurements.
