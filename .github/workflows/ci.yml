@@ -20,6 +20,8 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: cargo run --quiet --locked -p server-lab-native --bin experiment -- 10 5 5 1 1000
+      - name: Run native multiplayer recovery experiment
+        run: cargo run --quiet --locked -p server-lab-native --bin multiplayer-recovery-experiment
 
   web:
     runs-on: ubuntu-latest
