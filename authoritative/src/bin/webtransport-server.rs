@@ -33,10 +33,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .ok()
         .and_then(|value| value.parse::<u16>().ok())
         .unwrap_or(DEFAULT_PORT);
-    let certificate = env::var("AUTHORITATIVE_CERT_PEM")
-        .unwrap_or_else(|_| "cert.pem".to_owned());
-    let private_key = env::var("AUTHORITATIVE_KEY_PEM")
-        .unwrap_or_else(|_| "key.pem".to_owned());
+    let certificate = env::var("AUTHORITATIVE_CERT_PEM").unwrap_or_else(|_| "cert.pem".to_owned());
+    let private_key = env::var("AUTHORITATIVE_KEY_PEM").unwrap_or_else(|_| "key.pem".to_owned());
 
     let identity = Identity::load_pemfiles(&certificate, &private_key).await?;
     let config = ServerConfig::builder()
@@ -70,7 +68,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
             };
             if request.path() != SESSION_PATH {
-                request.not_found().await;
+                let _ = request.not_found().await;
                 return;
             }
             let connection = match request.accept().await {
@@ -177,7 +175,10 @@ async fn run_admitted_connection(
         max_players: MAX_PLAYERS as u8,
         current_tick,
     });
-    let opening = connection.open_uni().await.map_err(|error| error.to_string())?;
+    let opening = connection
+        .open_uni()
+        .await
+        .map_err(|error| error.to_string())?;
     let mut welcome_stream = opening.await.map_err(|error| error.to_string())?;
     welcome_stream
         .write_all(&welcome)
