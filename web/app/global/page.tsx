@@ -1,3 +1,4 @@
+import { FleetPlacementLab } from "@/components/fleet-placement-lab";
 import { GameplayLatencyLab } from "@/components/gameplay-latency-lab";
 import { GlobalIngressLab } from "@/components/global-ingress-lab";
 import { MultiplayerRecoveryLab } from "@/components/multiplayer-recovery-lab";
@@ -10,6 +11,7 @@ export default function GlobalPage() {
       <RoomAuthorityLab />
       <GameplayLatencyLab />
       <MultiplayerRecoveryLab />
+      <FleetPlacementLab />
     </>
   );
 }
