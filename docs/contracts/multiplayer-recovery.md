@@ -1,6 +1,6 @@
 # Regional multiplayer failure and recovery contract
 
-Slice 7D extends the deterministic global multiplayer lesson with failure semantics. The model is teaching evidence, not a production WebRTC, TURN, or provider availability measurement.
+Slice 7D extends the deterministic global multiplayer lesson with failure semantics. The browser model is teaching evidence; the native experiment adds process/socket evidence without turning localhost into a claim about production WebRTC, TURN, or provider availability.
 
 ## 7D-A: control-plane failure semantics
 
@@ -57,7 +57,7 @@ A failed relay is not silently replaced. Recovery uses an explicit **TURN reallo
 
 ## 7D-D: recovery integration and authority fencing
 
-The final deterministic slice reuses the existing recovery lesson instead of introducing a second generic coordination engine.
+The deterministic recovery slice reuses the existing recovery lesson instead of introducing a second generic coordination engine.
 
 The global room directory is modeled as a **stateful authority**, so its leader recovery legitimately reuses the existing election semantics:
 
@@ -70,7 +70,7 @@ A short failure that ends before the modeled detection threshold does not trigge
 
 Those coordination concepts are deliberately **not** copied onto stateless signaling or TURN services. A signaling or TURN region may fail, partition, or be explicitly replaced, but it does not receive an election term merely because the directory authority uses one.
 
-The `/global` lesson exposes the combined model interactively: lifecycle, signaling health, directory health, direct versus relayed gameplay, ICE/rejoin/relay recovery, and the directory-authority election trace can be inspected without conflating control-plane and gameplay dependencies.
+The `/global` lesson exposes the combined deterministic model interactively: lifecycle, signaling health, directory health, direct versus relayed gameplay, ICE/rejoin/relay recovery, and the directory-authority election trace can be inspected without conflating control-plane and gameplay dependencies.
 
 ### Integration invariants
 
@@ -79,8 +79,36 @@ The `/global` lesson exposes the combined model interactively: lifecycle, signal
 3. A failure that heals before detection does not create a new directory leader or term.
 4. Signaling and TURN failure semantics stay independent from directory election mechanics.
 5. The interactive lesson consumes the same deterministic models covered by tests rather than duplicating their decisions in presentation code.
-6. All timing and availability values remain teaching constants, not measured provider behavior.
+6. All deterministic timing and availability values remain teaching constants, not measured provider behavior.
 
-## Deferred measurement work
+## 7D-E: native multi-process reproduction
 
-Native multi-process or multi-host reproduction remains deliberately deferred. The deterministic Slice 7D semantics are now stable enough to define what such an experiment would need to measure, but this contract does not claim that the browser model has already been validated against real regional WebRTC, signaling, directory, or TURN infrastructure.
+The stable dependency boundaries are also reproduced by `multiplayer-recovery-experiment` in the native Rust crate.
+
+The experiment launches independent child processes on ephemeral loopback sockets for:
+
+- directory authority reachability;
+- signaling reachability;
+- an already-established direct gameplay path;
+- an active TURN relay.
+
+It then terminates those child processes independently and records real connect/write/read outcomes.
+
+The native semantic gate requires:
+
+1. all baseline services are reachable before failure injection;
+2. terminating the directory blocks modeled new setup while the established direct path remains reachable;
+3. terminating signaling blocks the modeled ICE-restart dependency while the established direct path remains reachable;
+4. terminating the active TURN relay leaves direct gameplay reachable but makes the relayed path unreachable;
+5. explicit TURN replacement succeeds only after both signaling and the replacement relay are reachable.
+
+These checks validate the **dependency separation across real process/socket boundaries**. They do not implement WebRTC, ICE, TURN allocation, DNS, or regional routing protocols themselves.
+
+The experiment emits observed loopback probe latency as machine-readable evidence, but pass/fail depends only on the semantic reachability outcomes. Exact timing is deliberately not gated.
+
+### Native evidence boundary
+
+- Multi-process behavior is now measured rather than inferred from the deterministic browser model.
+- The experiment runs on one host and does not claim multi-region latency or provider-failure realism.
+- Real multi-host/regional reproduction remains a future experiment only if there is a concrete infrastructure question worth measuring.
+- Browser-model constants and native loopback timings must not be presented as production performance numbers.
