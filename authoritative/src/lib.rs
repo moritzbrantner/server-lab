@@ -73,9 +73,14 @@ impl fmt::Display for ProtocolError {
                 write!(formatter, "expected {expected} bytes, received {actual}")
             }
             Self::UnsupportedVersion(version) => {
-                write!(formatter, "unsupported authoritative protocol version {version}")
+                write!(
+                    formatter,
+                    "unsupported authoritative protocol version {version}"
+                )
             }
-            Self::UnexpectedKind(kind) => write!(formatter, "unexpected authoritative frame kind {kind}"),
+            Self::UnexpectedKind(kind) => {
+                write!(formatter, "unexpected authoritative frame kind {kind}")
+            }
             Self::InvalidSequence => write!(formatter, "input sequence must be non-zero"),
             Self::InvalidAxis {
                 horizontal,
@@ -85,7 +90,10 @@ impl fmt::Display for ProtocolError {
                 "input axes must each be between -1 and 1, got ({horizontal}, {vertical})"
             ),
             Self::InvalidPlayerCount(count) => {
-                write!(formatter, "authoritative snapshot contains invalid player count {count}")
+                write!(
+                    formatter,
+                    "authoritative snapshot contains invalid player count {count}"
+                )
             }
             Self::InvalidStateHash { expected, actual } => write!(
                 formatter,
@@ -111,9 +119,15 @@ impl fmt::Display for WorldError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidPlayerId => write!(formatter, "player id zero is reserved"),
-            Self::DuplicatePlayer(player_id) => write!(formatter, "player {player_id} already exists"),
-            Self::PlayerCapacity => write!(formatter, "authoritative world has reached player capacity"),
-            Self::UnknownPlayer(player_id) => write!(formatter, "unknown authoritative player {player_id}"),
+            Self::DuplicatePlayer(player_id) => {
+                write!(formatter, "player {player_id} already exists")
+            }
+            Self::PlayerCapacity => {
+                write!(formatter, "authoritative world has reached player capacity")
+            }
+            Self::UnknownPlayer(player_id) => {
+                write!(formatter, "unknown authoritative player {player_id}")
+            }
             Self::InvalidInput(error) => write!(formatter, "invalid authoritative input: {error}"),
             Self::TickExhausted => write!(formatter, "authoritative tick counter is exhausted"),
         }
@@ -248,7 +262,9 @@ impl AuthoritativeWorld {
     }
 }
 
-pub fn encode_input_datagram(input: InputCommand) -> Result<[u8; INPUT_DATAGRAM_BYTES], ProtocolError> {
+pub fn encode_input_datagram(
+    input: InputCommand,
+) -> Result<[u8; INPUT_DATAGRAM_BYTES], ProtocolError> {
     validate_input(input)?;
     let mut bytes = [0_u8; INPUT_DATAGRAM_BYTES];
     bytes[0] = PROTOCOL_VERSION;
@@ -263,7 +279,11 @@ pub fn decode_input_datagram(bytes: &[u8]) -> Result<InputCommand, ProtocolError
     require_length(bytes, INPUT_DATAGRAM_BYTES)?;
     require_header(bytes, INPUT_KIND)?;
     let input = InputCommand {
-        sequence: u32::from_be_bytes(bytes[2..6].try_into().expect("checked input datagram length")),
+        sequence: u32::from_be_bytes(
+            bytes[2..6]
+                .try_into()
+                .expect("checked input datagram length"),
+        ),
         horizontal: bytes[6] as i8,
         vertical: bytes[7] as i8,
     };
@@ -283,9 +303,8 @@ pub fn encode_snapshot_datagram(snapshot: &Snapshot) -> Result<Vec<u8>, Protocol
         });
     }
 
-    let mut bytes = Vec::with_capacity(
-        SNAPSHOT_HEADER_BYTES + snapshot.players.len() * SNAPSHOT_PLAYER_BYTES,
-    );
+    let mut bytes =
+        Vec::with_capacity(SNAPSHOT_HEADER_BYTES + snapshot.players.len() * SNAPSHOT_PLAYER_BYTES);
     bytes.push(PROTOCOL_VERSION);
     bytes.push(SNAPSHOT_KIND);
     bytes.extend_from_slice(&snapshot.tick.to_be_bytes());
@@ -315,7 +334,11 @@ pub fn decode_snapshot_datagram(bytes: &[u8]) -> Result<Snapshot, ProtocolError>
     let expected_length = SNAPSHOT_HEADER_BYTES + player_count * SNAPSHOT_PLAYER_BYTES;
     require_length(bytes, expected_length)?;
 
-    let tick = u64::from_be_bytes(bytes[2..10].try_into().expect("checked snapshot header length"));
+    let tick = u64::from_be_bytes(
+        bytes[2..10]
+            .try_into()
+            .expect("checked snapshot header length"),
+    );
     let state_hash = u64::from_be_bytes(
         bytes[10..18]
             .try_into()
