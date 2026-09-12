@@ -35,5 +35,7 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
+      - name: Test authoritative presentation model
+        run: bun test ../authoritative/web-tests
       - name: Build authoritative WebTransport browser client
         run: bun build ../authoritative/web/client.js --target=browser --outdir=/tmp/authoritative-webtransport-client
