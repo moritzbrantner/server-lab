@@ -275,12 +275,13 @@ export function FleetPlacementLab() {
           </div>
 
           <div className="global-explanation">
-            <h3>Possible extraction boundary</h3>
+            <h3>Possible fleet-scheduler boundary</h3>
             <p>
-              A future `server-setup` integration should consume a small placement contract:
+              A future scheduler beside <code>game-server</code> can consume a small placement contract:
               eligible regions, capacity/load evidence, participant latency evidence, and a
-              deterministic decision. Provider provisioning, DNS, process orchestration, and
-              game rules stay outside this model until later slices prove their boundaries.
+              deterministic decision. <code>server-setup</code> may provide host facts and prerequisites,
+              but application region selection, provider provisioning, DNS, process orchestration, and
+              game rules stay outside its host-management boundary.
             </p>
           </div>
         </div>

@@ -4,9 +4,9 @@ Slice 8 extends the single-room authority lesson into deterministic fleet-level 
 
 ## Purpose
 
-The model answers a narrower question than `server-setup` eventually would: given a fixed set of eligible regions, deterministic participant RTT evidence, room demand, and bounded regional capacity, how do different placement algorithms trade latency, load balance, and ownership stability?
+The model answers a narrow workload-scheduling question: given a fixed set of eligible regions, deterministic participant RTT evidence, room demand, and bounded regional capacity, how do different placement algorithms trade latency, load balance, and ownership stability?
 
-It deliberately does not provision machines, create DNS records, move real processes, or own game rules.
+It deliberately does not provision machines, create DNS records, move real processes, or own game rules. Under the current repository boundaries, a future fleet scheduler beside `game-server` is the natural production-shaped consumer; `server-setup` remains responsible for host setup and validation rather than application placement.
 
 ## Inputs
 
@@ -56,8 +56,10 @@ This distinction is part of the acceptance contract. Stability is not inferred m
 6. Failure comparison reports forced movement separately from avoidable cascade churn.
 7. Latency values remain model constants and are not described as measured network performance.
 
-## Possible `server-setup` extraction boundary
+## Possible fleet-scheduler extraction boundary
 
-If a later production repository needs this capability, the reusable boundary should be small: an input contract describing eligible regions, health, capacity/load evidence, participant latency evidence, and stable workload identity; plus a deterministic placement decision and explanation.
+If production hosting needs this capability, the reusable boundary should be small: an input contract describing eligible regions, health, capacity/load evidence, participant latency evidence, and stable workload identity; plus a deterministic placement decision and explanation.
 
-Provider discovery, provisioning, server process lifecycle, DNS, persistence, and game-domain authority remain outside this slice. Slices 9 and 10 must establish the distribution and network-measurement boundaries before any larger extraction is justified.
+A future scheduler beside `game-server` can consume host/process facts without owning host bootstrap. `server-setup` may eventually validate or expose host facts such as region/failure-domain labels, capacity diagnostics, and UDP/QUIC prerequisites, but it should not choose the application region under its current host-management architecture.
+
+Provider discovery, provisioning, server process lifecycle, DNS, persistence, and game-domain authority remain outside this slice. Slice 9 establishes the intra-region process boundary, while Slice 10/11 establish packet and transport evidence.
