@@ -562,7 +562,7 @@ mod tests {
             right.add_player(player_id).unwrap();
         }
 
-        for sequence in 1..=40 {
+        for sequence in 1_u32..=40 {
             let player_id = sequence % 3 + 1;
             let command = if sequence.is_multiple_of(2) {
                 input(sequence, 1, 0)
