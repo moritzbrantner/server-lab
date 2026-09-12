@@ -16,7 +16,8 @@ The transport-independent authority kernel is implemented and the browser-facing
 - compact authoritative snapshots and deterministic state hashes;
 - native TCP multi-client harness for transport-independent real-socket testing;
 - WebTransport server adapter with reliable welcome streams plus unreliable input/snapshot datagrams;
-- browser client that retransmits current intent at 20 Hz and renders authoritative snapshots.
+- browser client that retransmits current intent at 20 Hz;
+- presentation-only local prediction, authoritative correction, acknowledged-input pruning, and remote interpolation.
 
 Run the kernel tests with:
 
@@ -55,6 +56,8 @@ The server requires negotiated datagram support and a datagram budget large enou
 
 Client input is retransmitted every 50 ms with a monotonically increasing sequence. This is deliberate: WebTransport datagrams may be dropped, so a later input refresh repairs a lost press/release without making realtime input reliable or ordered.
 
+The browser never creates a second canonical simulation. It extrapolates only the local player's visual position for at most four server ticks from the latest authoritative snapshot. Each newer snapshot resets that basis, and `lastAppliedSequence` prunes acknowledged input history. Remote players are interpolated between canonical snapshots and are not extrapolated beyond the latest known server state.
+
 ## Transport roadmap
 
 ### Slice A — authoritative kernel and framing — completed
@@ -67,7 +70,7 @@ Client input is retransmitted every 50 ms with a monotonically increasing sequen
 - [x] Deterministic state hash evidence.
 - [x] Native real-socket harness with bounded latest-snapshot backpressure.
 
-### Slice B — WebTransport / HTTP/3 — implemented
+### Slice B — WebTransport / HTTP/3 — completed
 
 - [x] Add a WebTransport server adapter without moving game semantics into the transport layer.
 - [x] Map welcome/session metadata to a reliable unidirectional stream.
@@ -80,13 +83,14 @@ Client input is retransmitted every 50 ms with a monotonically increasing sequen
 
 The current Rust WebTransport implementation uses `wtransport` as an adapter. The deterministic kernel remains independent of that library so replacing the HTTP/3 implementation cannot change game authority semantics.
 
-### Slice C — client prediction and reconciliation
+### Slice C — client prediction and reconciliation — implemented
 
-- [ ] Predict only the local player's presentation state.
-- [ ] Preserve server tick/state as canonical.
-- [ ] Use `lastAppliedSequence` to discard acknowledged local input history.
-- [ ] Reconcile prediction against authoritative snapshots without mutating server history.
-- [ ] Add interpolation for remote players and bounded extrapolation only where measured evidence supports it.
+- [x] Predict only the local player's presentation state.
+- [x] Preserve server tick/state as canonical.
+- [x] Use `lastAppliedSequence` to discard acknowledged local input history.
+- [x] Reset prediction from every newer authoritative snapshot without mutating server history.
+- [x] Interpolate remote players and bound local extrapolation to four ticks.
+- [x] Fail closed on stale snapshots so presentation authority cannot roll backwards.
 
 ### Slice D — authoritative gameplay services
 
@@ -102,8 +106,9 @@ The current Rust WebTransport implementation uses `wtransport` as an adapter. Th
 2. A connection determines player identity; an input payload cannot impersonate another player.
 3. The server alone advances ticks and mutates authoritative positions.
 4. Duplicate/stale valid input is idempotently ignored.
-5. Realtime transport may drop stale packets, but the simulation rules are independent of packet delivery APIs.
-6. Transport-specific code remains an adapter around this crate's deterministic kernel.
-7. WebTransport is the browser target because this model is client-to-server; WebRTC remains the appropriate P2P transport for the separate rendezvous architecture.
+5. Client prediction is presentation-only and is reset by newer server snapshots.
+6. Realtime transport may drop stale packets, but the simulation rules are independent of packet delivery APIs.
+7. Transport-specific code remains an adapter around this crate's deterministic kernel.
+8. WebTransport is the browser target because this model is client-to-server; WebRTC remains the appropriate P2P transport for the separate rendezvous architecture.
 
 See `../docs/contracts/authoritative-multiplayer.md` for the exact protocol and authority contract.
