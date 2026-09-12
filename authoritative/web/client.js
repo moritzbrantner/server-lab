@@ -1,3 +1,8 @@
+import {
+  AUTHORITATIVE_WORLD_LIMIT,
+  PresentationTimeline,
+} from "./presentation.js";
+
 const PROTOCOL_VERSION = 1;
 const INPUT_KIND = 1;
 const SNAPSHOT_KIND = 2;
@@ -7,7 +12,6 @@ const WELCOME_BYTES = 18;
 const SNAPSHOT_HEADER_BYTES = 19;
 const SNAPSHOT_PLAYER_BYTES = 12;
 const TICK_INTERVAL_MS = 50;
-const WORLD_LIMIT = 10_000;
 
 const form = document.querySelector("#connect-form");
 const endpointInput = document.querySelector("#endpoint");
@@ -23,9 +27,11 @@ const context = canvas.getContext("2d");
 let transport = null;
 let datagramWriter = null;
 let inputTimer = null;
+let animationFrame = null;
 let inputSendInFlight = false;
 let sequence = 0;
 let localPlayerId = null;
+let timeline = null;
 let horizontal = 0;
 let vertical = 0;
 const pressed = new Set();
@@ -40,14 +46,14 @@ function nextSequence() {
   return sequence;
 }
 
-function encodeInput() {
+function encodeInput(input) {
   const bytes = new Uint8Array(INPUT_BYTES);
   const view = new DataView(bytes.buffer);
   view.setUint8(0, PROTOCOL_VERSION);
   view.setUint8(1, INPUT_KIND);
-  view.setUint32(2, nextSequence());
-  view.setInt8(6, horizontal);
-  view.setInt8(7, vertical);
+  view.setUint32(2, input.sequence);
+  view.setInt8(6, input.horizontal);
+  view.setInt8(7, input.vertical);
   return bytes;
 }
 
@@ -122,23 +128,45 @@ async function readWelcome(currentTransport) {
   }
 }
 
-function render(snapshot) {
-  tickOutput.textContent = snapshot.tick.toString();
-  hashOutput.textContent = `0x${snapshot.stateHash.toString(16).padStart(16, "0")}`;
-  playersOutput.textContent = snapshot.players
-    .map((player) => `${player.playerId}@(${player.x},${player.y})#${player.lastAppliedSequence}`)
+function formatCoordinate(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function render(presentation) {
+  tickOutput.textContent = presentation.canonicalTick.toString();
+  hashOutput.textContent = `0x${presentation.canonicalStateHash.toString(16).padStart(16, "0")}`;
+  playersOutput.textContent = presentation.players
+    .map((player) => {
+      const mode = player.playerId === localPlayerId && player.predicted
+        ? " predicted"
+        : player.interpolated
+          ? " interpolated"
+          : "";
+      return `${player.playerId}@(${formatCoordinate(player.x)},${formatCoordinate(player.y)})#${player.lastAppliedSequence}${mode}`;
+    })
     .join(" · ");
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
-  for (const player of snapshot.players) {
-    const x = ((player.x + WORLD_LIMIT) / (WORLD_LIMIT * 2)) * canvas.width;
-    const y = ((player.y + WORLD_LIMIT) / (WORLD_LIMIT * 2)) * canvas.height;
+  for (const player of presentation.players) {
+    const x = ((player.x + AUTHORITATIVE_WORLD_LIMIT) / (AUTHORITATIVE_WORLD_LIMIT * 2)) * canvas.width;
+    const y = ((player.y + AUTHORITATIVE_WORLD_LIMIT) / (AUTHORITATIVE_WORLD_LIMIT * 2)) * canvas.height;
     context.beginPath();
     context.arc(x, y, player.playerId === localPlayerId ? 8 : 5, 0, Math.PI * 2);
     context.fill();
     context.fillText(String(player.playerId), x + 10, y - 8);
   }
+}
+
+function startRenderLoop(currentTransport) {
+  cancelAnimationFrame(animationFrame);
+  const frame = () => {
+    if (transport !== currentTransport) return;
+    const presentation = timeline?.present(performance.now(), { horizontal, vertical });
+    if (presentation) render(presentation);
+    animationFrame = requestAnimationFrame(frame);
+  };
+  animationFrame = requestAnimationFrame(frame);
 }
 
 async function consumeSnapshots(currentTransport) {
@@ -148,7 +176,7 @@ async function consumeSnapshots(currentTransport) {
       const { value, done } = await reader.read();
       if (done) return;
       if (!(value instanceof Uint8Array)) continue;
-      render(decodeSnapshot(value));
+      timeline?.acceptSnapshot(decodeSnapshot(value), performance.now());
     }
   } finally {
     reader.releaseLock();
@@ -158,8 +186,14 @@ async function consumeSnapshots(currentTransport) {
 async function sendCurrentInput(currentTransport) {
   if (transport !== currentTransport || !datagramWriter || inputSendInFlight) return;
   inputSendInFlight = true;
+  const input = {
+    sequence: nextSequence(),
+    horizontal,
+    vertical,
+  };
+  timeline?.recordInput(input);
   try {
-    await datagramWriter.write(encodeInput());
+    await datagramWriter.write(encodeInput(input));
   } finally {
     inputSendInFlight = false;
   }
@@ -206,14 +240,17 @@ function resetUi() {
   hashOutput.textContent = "—";
   playersOutput.textContent = "—";
   localPlayerId = null;
+  timeline = null;
   sequence = 0;
   pressed.clear();
   updateAxes();
 }
 
-async function disconnect() {
+async function disconnect(status = "Disconnected") {
   clearInterval(inputTimer);
   inputTimer = null;
+  cancelAnimationFrame(animationFrame);
+  animationFrame = null;
   const currentTransport = transport;
   transport = null;
   try {
@@ -224,7 +261,7 @@ async function disconnect() {
   datagramWriter = null;
   currentTransport?.close();
   resetUi();
-  setStatus("Disconnected");
+  setStatus(status);
 }
 
 async function connect(endpoint) {
@@ -239,25 +276,31 @@ async function connect(endpoint) {
 
   const welcome = await readWelcome(currentTransport);
   localPlayerId = welcome.playerId;
+  timeline = new PresentationTimeline({ localPlayerId });
   playerOutput.textContent = `${welcome.playerId} · ${welcome.tickHz} Hz · max ${welcome.maxPlayers}`;
   tickOutput.textContent = welcome.currentTick.toString();
   datagramWriter = currentTransport.datagrams.writable.getWriter();
   disconnectButton.disabled = false;
-  setStatus("Connected");
+  setStatus("Connected · local prediction is presentation-only");
   startInputLoop(currentTransport);
+  startRenderLoop(currentTransport);
   consumeSnapshots(currentTransport).catch((error) => {
     if (transport === currentTransport) setStatus(`Snapshot stream failed: ${error.message}`);
   });
-  currentTransport.closed.finally(() => {
-    if (transport === currentTransport) disconnect();
-  });
+  currentTransport.closed.then(
+    () => {
+      if (transport === currentTransport) disconnect("Connection closed");
+    },
+    (error) => {
+      if (transport === currentTransport) disconnect(`Connection closed: ${error.message}`);
+    },
+  );
 }
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   connect(endpointInput.value.trim()).catch((error) => {
-    setStatus(`Connection failed: ${error.message}`);
-    disconnect();
+    disconnect(`Connection failed: ${error.message}`);
   });
 });
 
