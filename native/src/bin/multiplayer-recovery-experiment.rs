@@ -139,10 +139,7 @@ impl Drop for ServiceProcess {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.get(1).is_some_and(|arg| arg == "--service") {
-        let name = args
-            .get(2)
-            .ok_or("missing service name")?
-            .to_owned();
+        let name = args.get(2).ok_or("missing service name")?.to_owned();
         let address = args
             .get(3)
             .ok_or("missing service address")?
@@ -185,7 +182,8 @@ fn run_experiment() -> io::Result<Report> {
     let relayed_with_active_turn_down = probe(turn_relay.address, turn_relay.name).success;
 
     let replacement_turn = ServiceProcess::spawn("turn-replacement")?;
-    let turn_reallocation_with_replacement = signaling.probe().success && replacement_turn.probe().success;
+    let turn_reallocation_with_replacement =
+        signaling.probe().success && replacement_turn.probe().success;
 
     Ok(Report {
         baseline_directory,
