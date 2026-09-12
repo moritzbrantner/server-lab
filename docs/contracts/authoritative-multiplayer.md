@@ -7,7 +7,7 @@ The two architectures intentionally do not share an authority model:
 - `multiplayer-setup-service` owns rendezvous and connection setup; game state stays outside that service and gameplay normally becomes peer-to-peer.
 - this experiment owns the simulation on the server; clients submit bounded intent and receive authoritative snapshots.
 
-The first slice proves the authority and protocol boundaries independently of a browser transport library. The native TCP server is only a transport harness. WebTransport over HTTP/3/QUIC is the intended browser transport for the next slice.
+The deterministic kernel is transport-independent. The native TCP server is a compatibility harness; WebTransport over HTTP/3/QUIC is the browser-facing transport adapter.
 
 ## Authority boundary
 
@@ -36,6 +36,8 @@ The latest accepted intent remains active until another newer input replaces it.
 
 Each axis is bounded to `-1`, `0`, or `1`. Movement is clamped to the authoritative world bounds. Clients cannot submit teleport coordinates, elapsed time, simulation ticks, or a claimed resulting state.
 
+Because realtime input uses unreliable datagrams, the browser refreshes its current intent every 50 ms with a newer sequence. This makes packet loss self-healing without changing the server rule that only the latest accepted intent matters.
+
 ## Deterministic state
 
 Players are stored in deterministic player-id order. A snapshot contains:
@@ -51,14 +53,18 @@ Replaying the same admitted inputs at the same ticks produces the same snapshots
 
 ## Browser transport mapping
 
-The protocol is intentionally shaped for WebTransport:
+The current browser adapter maps the protocol onto WebTransport:
 
-| Semantic | Intended WebTransport primitive | Reason |
+| Semantic | WebTransport primitive | Reason |
 | --- | --- | --- |
 | Welcome / server-assigned identity | Reliable unidirectional stream | Must arrive exactly once before gameplay |
 | Realtime client input | Datagram | Small, frequent, newer input supersedes older input |
 | Authoritative snapshots | Datagram | Latest state matters more than retransmitting stale snapshots |
 | Future inventory/chat/match commands | Reliable streams | Transactional or ordered semantics |
+
+The WebTransport session path is `/authoritative`. The server rejects sessions that cannot send an application datagram large enough for the maximum authoritative snapshot.
+
+Snapshot sends are intentionally not converted into a reliable queue when QUIC datagrams are congested. Missing an older snapshot is acceptable because the next server snapshot is newer canonical state. Reliable game semantics must use streams instead.
 
 The compact binary formats keep the realtime messages bounded:
 
@@ -89,7 +95,7 @@ repeat player count:
   u32 last applied input sequence
 ```
 
-The bounded 16-player snapshot remains far below the protocol's 256-byte local target and is suitable for unreliable latest-state delivery without fragmentation at this application layer.
+The bounded 16-player snapshot remains below the protocol's 256-byte local target and comfortably below the datagram budget required by the server before admission.
 
 ### Welcome frame — 18 bytes
 
@@ -103,6 +109,25 @@ u8  reserved
 u64 current tick
 ```
 
+## WebTransport server adapter
+
+`authoritative-webtransport-server` terminates the browser WebTransport session and delegates all game decisions to `AuthoritativeWorld`.
+
+The adapter:
+
+- loads a configured TLS certificate/private key and exposes an HTTP/3 WebTransport endpoint;
+- accepts only `/authoritative` sessions;
+- requires negotiated QUIC datagrams large enough for a 16-player snapshot;
+- assigns the player id after transport admission;
+- sends the welcome frame on a reliable unidirectional stream;
+- treats every received datagram as exactly one bounded input command;
+- advances one shared world at 20 Hz independently of client packet arrival;
+- broadcasts compact snapshots via datagrams;
+- treats broadcast lag as latest-state loss rather than replaying stale snapshots;
+- removes admitted players when their connection closes or post-admission setup fails.
+
+`wtransport` is an adapter dependency, not a gameplay authority. Replacing it must not require changing the deterministic kernel or wire semantics.
+
 ## Native TCP harness
 
 `authoritative-tcp-server` proves that the authoritative kernel is usable behind a real connection boundary without coupling the kernel to WebTransport.
@@ -114,10 +139,10 @@ The harness:
 - accepts fixed-size input frames;
 - advances one shared world at 20 Hz;
 - broadcasts authoritative snapshots;
-- uses a one-snapshot queue per client and drops an older pending snapshot rather than allowing unbounded backlog;
-- removes a player when the connection closes.
+- uses an overwriteable one-snapshot buffer per client so a blocked writer retains the latest snapshot instead of stale backlog;
+- removes an admitted player on all post-admission exits, including setup failures.
 
-TCP is not presented as the browser realtime transport. It exists so authority, framing, backpressure, disconnect handling, and multi-client state can be exercised with native processes before adding QUIC/TLS/browser concerns.
+TCP is not presented as the browser realtime transport. It remains useful for transport-independent native testing.
 
 ## Fail-closed rules
 
@@ -129,17 +154,18 @@ The server rejects or disconnects on:
 - out-of-range axes;
 - unknown player identities at the kernel boundary;
 - attempts to exceed 16 connected players;
+- WebTransport sessions without adequate datagram support;
 - malformed snapshots when decoding test evidence;
 - snapshot hashes that do not match the encoded state.
 
 Duplicate/stale valid input is not an error; it is ignored idempotently.
 
-## Deliberate exclusions from this slice
+## Deliberate exclusions
 
-This slice does not yet claim:
+The current slices do not yet claim:
 
-- production-ready WebTransport deployment;
-- browser certificate/TLS setup;
+- production qualification of the chosen Rust WebTransport implementation;
+- automated certificate issuance/rotation;
 - client-side prediction or reconciliation;
 - lag compensation or rollback;
 - authoritative physics from `physics-engine`;
