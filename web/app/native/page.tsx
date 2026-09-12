@@ -151,13 +151,15 @@ export default function NativePage() {
 
       <section className="concepts native-next">
         <div>
-          <p className="eyebrow">next experimental extension</p>
-          <h2>Put WebTransport through the same packet path.</h2>
+          <p className="eyebrow">cross-repository evidence · slice 11</p>
+          <h2>WebTransport now uses the same packet path.</h2>
         </div>
         <p>
-          The namespace/netem ownership boundary is now established independently of any transport. A later experiment can run
-          the authoritative QUIC/WebTransport adapter through it and compare stream versus datagram behavior under identical
-          packet loss, jitter, reordering, and rate constraints without changing the impairment model.
+          The extracted <code>game-server</code> runtime now runs its real QUIC/WebTransport endpoint through the same
+          namespace/netem boundary in CI. Its acceptance gate covers sustained delay, jitter, loss, reordering, and rate
+          limits plus a short total-loss outage, while requiring authoritative command convergence, several advancing
+          snapshots, and recovery on the same connection epoch. Longer outages, path changes, and migration remain separate
+          future experiments only when a concrete reliability question needs them.
         </p>
       </section>
     </main>
