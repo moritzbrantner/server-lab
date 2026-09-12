@@ -5,20 +5,74 @@ use server_lab_authoritative::{
 use std::env;
 use std::error::Error;
 use std::io::{self, Read, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::mpsc::{self, SyncSender, TrySendError};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 const DEFAULT_BIND_ADDR: &str = "127.0.0.1:9443";
-const SNAPSHOT_QUEUE_DEPTH: usize = 1;
+
+#[derive(Default)]
+struct LatestSnapshotState {
+    pending: Option<Vec<u8>>,
+    closed: bool,
+}
+
+#[derive(Default)]
+struct LatestSnapshot {
+    state: Mutex<LatestSnapshotState>,
+    ready: Condvar,
+}
+
+impl LatestSnapshot {
+    fn publish(&self, snapshot: &[u8]) -> bool {
+        let mut state = self
+            .state
+            .lock()
+            .expect("authoritative snapshot queue mutex poisoned");
+        if state.closed {
+            return false;
+        }
+        state.pending = Some(snapshot.to_vec());
+        self.ready.notify_one();
+        true
+    }
+
+    fn receive(&self) -> Option<Vec<u8>> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("authoritative snapshot queue mutex poisoned");
+        loop {
+            if let Some(snapshot) = state.pending.take() {
+                return Some(snapshot);
+            }
+            if state.closed {
+                return None;
+            }
+            state = self
+                .ready
+                .wait(state)
+                .expect("authoritative snapshot queue mutex poisoned while waiting");
+        }
+    }
+
+    fn close(&self) {
+        let mut state = self
+            .state
+            .lock()
+            .expect("authoritative snapshot queue mutex poisoned");
+        state.closed = true;
+        state.pending = None;
+        self.ready.notify_all();
+    }
+}
 
 #[derive(Clone)]
 struct ClientSink {
     player_id: u32,
-    sender: SyncSender<Vec<u8>>,
+    outbox: Arc<LatestSnapshot>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -73,10 +127,7 @@ fn spawn_tick_loop(world: Arc<Mutex<AuthoritativeWorld>>, clients: Arc<Mutex<Vec
             let mut clients = clients
                 .lock()
                 .expect("authoritative client list mutex poisoned");
-            clients.retain(|client| match client.sender.try_send(encoded.clone()) {
-                Ok(()) | Err(TrySendError::Full(_)) => true,
-                Err(TrySendError::Disconnected(_)) => false,
-            });
+            clients.retain(|client| client.outbox.publish(&encoded));
             drop(clients);
 
             let elapsed = started.elapsed();
@@ -105,28 +156,71 @@ fn handle_client(
         }
     };
 
+    let result = handle_admitted_client(&mut stream, player_id, current_tick, clients, world);
+    world
+        .lock()
+        .expect("authoritative world mutex poisoned")
+        .remove_player(player_id);
+    let mut clients = clients
+        .lock()
+        .expect("authoritative client list mutex poisoned");
+    clients.retain(|client| {
+        if client.player_id == player_id {
+            client.outbox.close();
+            false
+        } else {
+            true
+        }
+    });
+    result
+}
+
+fn handle_admitted_client(
+    stream: &mut TcpStream,
+    player_id: u32,
+    current_tick: u64,
+    clients: &Arc<Mutex<Vec<ClientSink>>>,
+    world: &Arc<Mutex<AuthoritativeWorld>>,
+) -> io::Result<()> {
     let welcome = encode_welcome(Welcome {
         player_id,
         tick_hz: TICK_HZ,
         max_players: MAX_PLAYERS as u8,
         current_tick,
     });
-    write_frame(&mut stream, &welcome)?;
+    write_frame(stream, &welcome)?;
 
     let mut writer = stream.try_clone()?;
-    let (sender, receiver) = mpsc::sync_channel::<Vec<u8>>(SNAPSHOT_QUEUE_DEPTH);
+    let outbox = Arc::new(LatestSnapshot::default());
     clients
         .lock()
         .expect("authoritative client list mutex poisoned")
-        .push(ClientSink { player_id, sender });
+        .push(ClientSink {
+            player_id,
+            outbox: Arc::clone(&outbox),
+        });
+    let writer_outbox = Arc::clone(&outbox);
     let writer_thread = thread::spawn(move || {
-        while let Ok(snapshot) = receiver.recv() {
+        while let Some(snapshot) = writer_outbox.receive() {
             if write_frame(&mut writer, &snapshot).is_err() {
+                writer_outbox.close();
+                let _ = writer.shutdown(Shutdown::Both);
                 break;
             }
         }
     });
 
+    let result = read_inputs(stream, player_id, world);
+    outbox.close();
+    let _ = writer_thread.join();
+    result
+}
+
+fn read_inputs(
+    stream: &mut TcpStream,
+    player_id: u32,
+    world: &Arc<Mutex<AuthoritativeWorld>>,
+) -> io::Result<()> {
     let mut input_bytes = [0_u8; INPUT_DATAGRAM_BYTES];
     loop {
         match stream.read_exact(&mut input_bytes) {
@@ -142,7 +236,7 @@ fn handle_client(
                 }
                 Err(error) => {
                     eprintln!("malformed authoritative input from player {player_id}: {error}");
-                    break;
+                    return Ok(());
                 }
             },
             Err(error)
@@ -153,22 +247,11 @@ fn handle_client(
                         | io::ErrorKind::BrokenPipe
                 ) =>
             {
-                break;
+                return Ok(());
             }
             Err(error) => return Err(error),
         }
     }
-
-    world
-        .lock()
-        .expect("authoritative world mutex poisoned")
-        .remove_player(player_id);
-    clients
-        .lock()
-        .expect("authoritative client list mutex poisoned")
-        .retain(|client| client.player_id != player_id);
-    let _ = writer_thread.join();
-    Ok(())
 }
 
 fn write_frame(stream: &mut TcpStream, payload: &[u8]) -> io::Result<()> {
@@ -177,4 +260,20 @@ fn write_frame(stream: &mut TcpStream, payload: &[u8]) -> io::Result<()> {
     stream.write_all(&length.to_be_bytes())?;
     stream.write_all(payload)?;
     stream.flush()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn latest_snapshot_replaces_an_older_pending_snapshot() {
+        let outbox = LatestSnapshot::default();
+        assert!(outbox.publish(&[1]));
+        assert!(outbox.publish(&[2]));
+        assert_eq!(outbox.receive(), Some(vec![2]));
+        outbox.close();
+        assert_eq!(outbox.receive(), None);
+        assert!(!outbox.publish(&[3]));
+    }
 }
