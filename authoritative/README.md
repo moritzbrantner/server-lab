@@ -4,9 +4,9 @@ This crate is the proving ground for the server-authoritative sibling of `multip
 
 The P2P service keeps gameplay outside the rendezvous server. This crate deliberately tests the opposite authority model: clients send intent to one server-owned simulation and receive canonical snapshots back.
 
-## Current slice
+## Current implementation
 
-The first slice establishes the transport-independent kernel:
+The transport-independent authority kernel is implemented and the browser-facing adapter uses WebTransport over HTTP/3/QUIC:
 
 - deterministic 20 Hz server ticks;
 - up to 16 server-assigned players;
@@ -14,7 +14,9 @@ The first slice establishes the transport-independent kernel:
 - stale/duplicate input rejection by sequence;
 - server-only position mutation;
 - compact authoritative snapshots and deterministic state hashes;
-- native TCP multi-client harness for real-socket testing.
+- native TCP multi-client harness for transport-independent real-socket testing;
+- WebTransport server adapter with reliable welcome streams plus unreliable input/snapshot datagrams;
+- browser client that retransmits current intent at 20 Hz and renders authoritative snapshots.
 
 Run the kernel tests with:
 
@@ -30,9 +32,32 @@ cargo run -p server-lab-authoritative --bin authoritative-tcp-server -- 127.0.0.
 
 The TCP framing is a native experiment only. It is not the target browser transport.
 
+## Local WebTransport proof
+
+WebTransport requires TLS. Create a browser-trusted development certificate for `localhost` and configure its PEM paths. `mkcert` is one convenient local option; a production deployment should use a normal CA-issued certificate.
+
+```bash
+export AUTHORITATIVE_CERT_PEM=/path/to/localhost-cert.pem
+export AUTHORITATIVE_KEY_PEM=/path/to/localhost-key.pem
+export AUTHORITATIVE_PORT=4433
+cargo run -p server-lab-authoritative --bin authoritative-webtransport-server
+```
+
+Serve `authoritative/web/` over an ordinary local HTTP server, open `client.html`, and connect to:
+
+```text
+https://localhost:4433/authoritative
+```
+
+The HTTP page only hosts the demo UI. Actual gameplay transport goes directly from the browser to the Rust WebTransport endpoint over HTTP/3/QUIC.
+
+The server requires negotiated datagram support and a datagram budget large enough for the maximum 16-player snapshot. The current application snapshot is at most 211 bytes. Session metadata is sent over a reliable unidirectional stream.
+
+Client input is retransmitted every 50 ms with a monotonically increasing sequence. This is deliberate: WebTransport datagrams may be dropped, so a later input refresh repairs a lost press/release without making realtime input reliable or ordered.
+
 ## Transport roadmap
 
-### Slice A — authoritative kernel and framing
+### Slice A — authoritative kernel and framing — completed
 
 - [x] Server-owned tick and world state.
 - [x] Server-assigned connection identity.
@@ -42,16 +67,18 @@ The TCP framing is a native experiment only. It is not the target browser transp
 - [x] Deterministic state hash evidence.
 - [x] Native real-socket harness with bounded latest-snapshot backpressure.
 
-### Slice B — WebTransport / HTTP/3
+### Slice B — WebTransport / HTTP/3 — implemented
 
-- [ ] Add a WebTransport server adapter without moving game semantics into the transport layer.
-- [ ] Map welcome/session metadata to a reliable unidirectional stream.
-- [ ] Map realtime client inputs to WebTransport datagrams.
-- [ ] Map authoritative latest-state snapshots to WebTransport datagrams.
-- [ ] Require datagram support and keep application payloads bounded.
-- [ ] Add certificate configuration suitable for local testing and a documented production TLS boundary.
-- [ ] Add a minimal browser client that proves real browser-to-Rust connectivity.
-- [ ] Keep a WebSocket compatibility adapter as a fallback only if a concrete browser/deployment requirement needs it.
+- [x] Add a WebTransport server adapter without moving game semantics into the transport layer.
+- [x] Map welcome/session metadata to a reliable unidirectional stream.
+- [x] Map realtime client inputs to WebTransport datagrams.
+- [x] Map authoritative latest-state snapshots to WebTransport datagrams.
+- [x] Require datagram support and keep application payloads bounded.
+- [x] Add certificate configuration suitable for local testing and an explicit production TLS boundary.
+- [x] Add a minimal browser client proving the browser protocol surface against the Rust endpoint.
+- [x] Keep WebSocket out of the design unless a concrete compatibility requirement appears.
+
+The current Rust WebTransport implementation uses `wtransport` as an adapter. The deterministic kernel remains independent of that library so replacing the HTTP/3 implementation cannot change game authority semantics.
 
 ### Slice C — client prediction and reconciliation
 
@@ -76,7 +103,7 @@ The TCP framing is a native experiment only. It is not the target browser transp
 3. The server alone advances ticks and mutates authoritative positions.
 4. Duplicate/stale valid input is idempotently ignored.
 5. Realtime transport may drop stale packets, but the simulation rules are independent of packet delivery APIs.
-6. Transport-specific code must remain an adapter around this crate's deterministic kernel.
+6. Transport-specific code remains an adapter around this crate's deterministic kernel.
 7. WebTransport is the browser target because this model is client-to-server; WebRTC remains the appropriate P2P transport for the separate rendezvous architecture.
 
 See `../docs/contracts/authoritative-multiplayer.md` for the exact protocol and authority contract.

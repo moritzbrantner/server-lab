@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Authoritative WebTransport client</title>
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+      form { display: flex; gap: .5rem; margin-bottom: 1rem; }
+      input { flex: 1; padding: .65rem; }
+      button { padding: .65rem 1rem; }
+      canvas { width: 100%; aspect-ratio: 16 / 9; border: 1px solid currentColor; }
+      dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1rem; }
+      dt { font-weight: 700; }
+      dd { margin: 0; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body>
+    <h1>Server-authoritative WebTransport</h1>
+    <p>The browser sends only movement intent. The Rust server owns identity, ticks, positions, and snapshots.</p>
+    <form id="connect-form">
+      <input id="endpoint" value="https://localhost:4433/authoritative" aria-label="WebTransport endpoint" />
+      <button type="submit">Connect</button>
+      <button id="disconnect" type="button" disabled>Disconnect</button>
+    </form>
+    <p>Move with WASD or the arrow keys. Current intent is retransmitted at the 20 Hz game cadence so dropped datagrams recover naturally.</p>
+    <canvas id="arena" width="800" height="450"></canvas>
+    <dl>
+      <dt>Status</dt><dd id="status">Disconnected</dd>
+      <dt>Player</dt><dd id="player">—</dd>
+      <dt>Tick</dt><dd id="tick">—</dd>
+      <dt>State hash</dt><dd id="hash">—</dd>
+      <dt>Players</dt><dd id="players">—</dd>
+    </dl>
+    <script type="module" src="./client.js"></script>
+  </body>
+</html>
