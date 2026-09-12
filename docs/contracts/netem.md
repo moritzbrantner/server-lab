@@ -32,6 +32,20 @@ A second netem qdisc combines delay variation, random packet loss, duplication, 
 
 The installed iproute2 version on the authoritative runner does not expose the newer netem `seed` option, so random-number-generator reproducibility is deliberately not part of this contract. The gate requires that communication remains observable and packet loss is actually observed over a sufficiently large sample. Exact loss, jitter, duplication, throughput, and timing values are evidence only.
 
+## Cross-repository WebTransport / QUIC evidence
+
+The transport follow-up is now implemented in `game-server`, which is the reusable owner of the server-authoritative runtime rather than this lab's older proof implementation.
+
+Its Linux CI creates an isolated client/server namespace pair, generates a short-lived test certificate, and runs the real `game-server` WebTransport/HTTP/3 endpoint through kernel qdiscs. The acceptance scenarios cover:
+
+- a clean baseline;
+- sustained bidirectional delay, jitter, loss, reordering, and rate limiting;
+- a mid-session 450 ms interval with 100% packet loss followed by link restoration.
+
+The probe requires the reliable welcome stream to succeed, accepts only strictly newer authoritative snapshot ticks, retransmits the newest command idempotently, and requires the final sent command sequence to appear as the authoritative applied sequence. The transient-outage evidence recovered on the same connection epoch rather than manufacturing a new game authority. A review hardening additionally requires several advancing snapshots so a single final acknowledgement followed by a stalled stream cannot satisfy the gate.
+
+`server-lab` retains ownership of the impairment semantics and teaching boundary; `game-server` owns the production-shaped transport behavior being tested. The lab should not duplicate the WebTransport harness now that a real second consumer exists.
+
 ## Required invariants
 
 1. Network impairment is implemented with kernel qdiscs on isolated namespace interfaces, never by delaying application handlers.
@@ -40,17 +54,18 @@ The installed iproute2 version on the authoritative runner does not expose the n
 4. Fixed-delay TCP evidence demonstrates a clear latency increase without asserting exact timing.
 5. The deterministic gap-reordering scenario observes packet reordering through sequence numbers.
 6. The mixed lossy UDP scenario observes actual packet loss and records qdisc statistics without treating RNG outcomes as exact correctness data.
-7. No result is presented as production Internet/provider performance.
-8. CI failure means the repository can no longer reproduce the claimed packet-level semantics on its authoritative Linux runner.
+7. Transport-specific consumers must assert their own semantic convergence rather than merely showing that packets were delivered.
+8. No result is presented as production Internet/provider performance.
+9. CI failure means the relevant repository can no longer reproduce the packet-level semantics it claims on its authoritative Linux runner.
 
 ## Current limitations
 
-This first packet-level slice is deliberately Linux-only and single-host. Network namespaces create real isolated kernel paths, but they do not reproduce physical WANs, NIC hardware, provider routing, or geographic Internet behavior.
+The network-emulation evidence is deliberately Linux-only and single-host. Network namespaces create real isolated kernel paths, but they do not reproduce physical WANs, NIC hardware, provider routing, or geographic Internet behavior.
 
-TCP can hide packet loss and reordering through retransmission and ordering semantics, which is why UDP sequence evidence is included separately. Netem timing is also subject to kernel timer granularity and scheduler effects. A later experiment can run the authoritative WebTransport/QUIC adapter through the same namespace/netem harness without changing the network-emulation ownership boundary.
+TCP can hide packet loss and reordering through retransmission and ordering semantics, which is why UDP sequence evidence is included separately. Netem timing is also subject to kernel timer granularity and scheduler effects. The `game-server` follow-up proves QUIC/WebTransport recovery under the declared single-host impairments, not real-region failover or provider performance.
 
 ## Possible `server-setup` extraction boundary
 
-The useful reusable concept is not the teaching script itself. A future `server-setup` integration could expose an optional Linux test-topology capability that creates isolated namespaces/links, applies declared impairment profiles, runs a supplied workload, and captures receipts.
+The useful reusable concept for `server-setup` is not the teaching script or application placement algorithm. A future host-test integration could expose an optional Linux topology capability that creates isolated namespaces/links, applies declared impairment profiles, runs a supplied workload, and captures receipts.
 
 It should remain opt-in test infrastructure. Production networking must never accidentally inherit netem qdiscs from the laboratory path.
