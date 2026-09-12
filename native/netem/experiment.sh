@@ -96,7 +96,7 @@ PY
 
 ip netns exec "$CLIENT_NS" tc qdisc replace dev eth0 root netem \
   delay 20ms 5ms 25% distribution normal \
-  loss random 10% duplicate 2% rate 10mbit seed 42
+  loss random 10% duplicate 2% rate 10mbit
 lossy=$(ip netns exec "$CLIENT_NS" "$UDP_BIN" client 10.203.0.2:9001 300 1 4000)
 qdisc=$(ip netns exec "$CLIENT_NS" tc -s qdisc show dev eth0 | tr '\n' ' ')
 
