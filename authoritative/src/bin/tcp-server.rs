@@ -1,6 +1,6 @@
 use server_lab_authoritative::{
-    AuthoritativeWorld, INPUT_DATAGRAM_BYTES, MAX_PLAYERS, TICK_HZ, Welcome,
-    decode_input_datagram, encode_snapshot_datagram, encode_welcome,
+    AuthoritativeWorld, INPUT_DATAGRAM_BYTES, MAX_PLAYERS, TICK_HZ, Welcome, decode_input_datagram,
+    encode_snapshot_datagram, encode_welcome,
 };
 use std::env;
 use std::error::Error;
@@ -70,7 +70,9 @@ fn spawn_tick_loop(world: Arc<Mutex<AuthoritativeWorld>>, clients: Arc<Mutex<Vec
                     .expect("world-generated snapshot must satisfy protocol bounds")
             };
 
-            let mut clients = clients.lock().expect("authoritative client list mutex poisoned");
+            let mut clients = clients
+                .lock()
+                .expect("authoritative client list mutex poisoned");
             clients.retain(|client| match client.sender.try_send(encoded.clone()) {
                 Ok(()) | Err(TrySendError::Full(_)) => true,
                 Err(TrySendError::Disconnected(_)) => false,
