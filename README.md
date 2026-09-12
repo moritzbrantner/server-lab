@@ -82,6 +82,7 @@ The Rust layer leaves the deterministic simulator and exercises real sockets, pr
 6. **Packet-level netem** — isolated Linux network namespaces and `tc netem` apply delay, jitter, packet loss, duplication, reordering, and rate limits to real packet paths rather than application handlers.
 7. **UDP sequence evidence** — numbered datagrams expose packet loss, duplication, and reordering that TCP intentionally hides from application delivery.
 8. **Machine-readable receipts** — native experiments emit evidence suitable for capture by `runtime-profiler` without making it a hard dependency.
+9. **Cross-repository WebTransport evidence** — the extracted `game-server` runs its real QUIC/WebTransport endpoint through the same netem boundary and gates authoritative convergence plus same-session outage recovery.
 
 The native layer deliberately does not claim stable benchmark numbers. Exact wall-clock timing is noisy; semantic outcomes and broad directional effects are the gate.
 
@@ -109,7 +110,7 @@ The `authoritative` Rust crate explores the architectural sibling of `multiplaye
 - a real WebTransport/HTTP/3 adapter using reliable session metadata plus datagrams for realtime input/snapshots;
 - a browser client with bounded local presentation prediction, authoritative reconciliation, acknowledgement pruning, and remote interpolation.
 
-The P2P and authoritative models intentionally remain separate: WebRTC remains appropriate for direct browser-to-browser gameplay, while WebTransport is used where the server itself owns the canonical simulation.
+The P2P and authoritative models intentionally remain separate: WebRTC remains appropriate for direct browser-to-browser gameplay, while WebTransport is used where the server itself owns the canonical simulation. The stable production-shaped boundary has since been extracted into `game-server`; new reusable runtime work should happen there rather than growing this proof into another production owner.
 
 See [`authoritative/README.md`](authoritative/README.md) and [`docs/contracts/authoritative-multiplayer.md`](docs/contracts/authoritative-multiplayer.md).
 
@@ -172,12 +173,14 @@ The teaching site is a static Next.js export suitable for GitHub Pages; native a
 
 `server-lab` owns educational scenarios, deterministic simulation models, visualizations, transport/game-authority experiments, placement/distribution experiments, and measurement harnesses. Production-grade networking primitives or generally reusable algorithms should be extracted only after a concrete experiment proves they deserve a separate owner.
 
-The current placement work intentionally separates two possible future `server-setup` boundaries:
+The placement experiments establish a possible future **fleet-scheduler** boundary above host setup:
 
 - **region placement contract** — eligible regions, health/capacity/load evidence, participant latency evidence, stable workload identity, and a deterministic placement decision;
 - **process distribution contract** — already-owned region, discovered host/process topology, failure-domain identity, health/drain state, hard capacity, stable workload identity, and a deterministic target process.
 
-The netem harness suggests a third optional test-infrastructure boundary: construct isolated Linux test links, apply declared impairment profiles, run a supplied workload, and capture receipts. It must never leak impairment into production networking.
+`game-server` can expose truthful workload/process capacity, health, readiness, and drain facts for such a scheduler. `server-setup` remains a host-management owner: it may expose or validate host facts such as region/failure-domain labels, CPU/memory capacity, UDP/QUIC prerequisites, and maintenance intent, but it does not choose application regions or processes under its current architecture.
+
+The netem harness suggests one plausible `server-setup` test-infrastructure boundary: construct isolated Linux test links, apply declared impairment profiles, run a supplied workload, and capture receipts. It must remain opt-in/disposable-host functionality and must never leak impairment into production networking.
 
 Gameplay-specific persistence, inventories, match recovery, authoritative physics, and actual live game-state migration remain outside these generic scheduling/network-test contracts. They should be introduced only for a concrete game that needs them, with reusable owners such as `physics-engine` remaining authoritative for their domain.
 
