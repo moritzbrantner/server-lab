@@ -122,7 +122,52 @@ The deterministic `/global` lesson separates control-plane setup from establishe
 
 The deterministic `/global` lesson models lifecycle-scoped signaling, directory, and TURN failure; explicit ICE restart, room rejoin, and relay reallocation; and stateful directory-authority recovery using the existing election term and fencing model. Stateless signaling and TURN remain outside that election contract.
 
-The native `multiplayer-recovery-experiment` now launches independent loopback processes for directory, signaling, direct gameplay, and TURN, kills them independently, and gates the expected dependency separation using real sockets. Its wall-clock timings are evidence only and are not presented as regional/provider measurements.
+The native `multiplayer-recovery-experiment` launches independent loopback processes for directory, signaling, direct gameplay, and TURN, kills them independently, and gates the expected dependency separation using real sockets. Its wall-clock timings are evidence only and are not presented as regional/provider measurements.
+
+## Placement, distribution, and packet-level networking roadmap
+
+### Slice 8 — multi-region fleet placement — completed
+
+- [x] Move beyond single-room placement and evaluate a deterministic fleet of many rooms.
+- [x] Enforce regional health and hard capacity before considering placement score.
+- [x] Compare minimum-average RTT and minimum-worst-player RTT.
+- [x] Add latency-plus-load scoring as an explicit tradeoff rather than hiding capacity pressure inside RTT.
+- [x] Add rendezvous hashing for stable ownership and deterministic remapping.
+- [x] Add power-of-two choices with deterministic candidate selection and load-aware choice.
+- [x] Measure failed placements, mean/worst player RTT, per-region utilization, forced moves, and cascade churn.
+- [x] Verify that rendezvous hashing causes no avoidable moves from still-healthy owners after one region fails when spare capacity exists.
+- [x] Publish the fleet-placement comparison in `/global` and document a narrow possible `server-setup` extraction contract.
+
+Slice 8 owns only the region decision. It consumes health, capacity/load evidence, stable room identity, and deterministic participant-latency evidence. It does not provision servers or own game rules.
+
+### Slice 9 — hierarchical server distribution — completed
+
+- [x] Preserve the Slice 8 region decision as an input rather than recomputing it during process scheduling.
+- [x] Model `room -> region -> host/failure domain -> process` explicitly.
+- [x] Enforce health, drain state, and hard process capacity.
+- [x] Fail closed when a region has no eligible process instead of silently spilling to another region.
+- [x] Compare round-robin, least-loaded, rendezvous hashing, and power-of-two choices inside each region.
+- [x] Distinguish host failure from graceful draining.
+- [x] Classify forced moves separately from cascade churn after a host failure.
+- [x] Verify rendezvous stability on still-healthy processes when remaining capacity is sufficient.
+- [x] Publish the process-distribution comparison in `/global` and document the generic scheduler boundary that may later fit `server-setup`.
+
+Slice 9 establishes a generic infrastructure-shaped scheduling boundary without claiming that the lab owns real host discovery, cloud provisioning, containers, deployment rollout, persistence, or live game-state migration.
+
+### Slice 10 — packet-level network emulation — completed
+
+- [x] Keep the existing Rust fault proxy explicitly request/connection-level rather than mislabeling it packet loss.
+- [x] Create isolated Linux client/server network namespaces connected by a veth pair.
+- [x] Apply real kernel `tc netem` qdiscs rather than sleeping inside application handlers.
+- [x] Demonstrate fixed packet delay through real TCP sockets with a broad directional latency gate.
+- [x] Add a numbered UDP echo probe so packet loss, duplication, and reordering are visible to the application.
+- [x] Add a deterministic gap-reordering acceptance scenario.
+- [x] Add a mixed delay/jitter/loss/duplication/rate scenario and retain `tc -s qdisc` evidence.
+- [x] Keep noisy RNG/timing outcomes as evidence rather than exact deterministic correctness claims.
+- [x] Clean namespaces and child processes on success or failure.
+- [x] Run the packet-level experiment as a Linux CI gate and publish the boundary on `/native`.
+
+The netem slice is single-host kernel evidence, not a claim about physical WANs, provider routing, or geographic Internet performance. Its useful future extraction boundary is an opt-in test-topology capability; production interfaces must never inherit laboratory qdiscs.
 
 ## Server-authoritative multiplayer roadmap
 
@@ -153,15 +198,16 @@ This track is the client-to-server sibling of the P2P architecture explored thro
 - [x] Interpolate remote players without extrapolating them beyond the newest server state.
 - [x] Add deterministic presentation tests and a browser bundle gate.
 
-Gameplay-specific services such as inventory transactions, persistence, match recovery, authoritative physics, and multi-process world placement are intentionally not unfinished transport work. They should be introduced only for a concrete game that needs them and should reuse their proper owning repositories where possible.
+Gameplay-specific services such as inventory transactions, persistence, match recovery, authoritative physics, and live multi-process world migration are intentionally not unfinished transport work. They should be introduced only for a concrete game that needs them and should reuse their proper owning repositories where possible.
 
 ## Further horizons
 
 These are research/experiment directions rather than incomplete roadmap commitments:
 
-- Add packet-level delay, loss, reordering, jitter, and congestion only through an explicit OS/network-emulation contract; do not mislabel the TCP stream proxy as packet-level netem.
-- Reproduce selected cache, shard, admission-control, and global-ingress scenarios with real multi-process or multi-host experiments when a concrete measurement question justifies them.
+- Run the authoritative WebTransport/QUIC transport through the established namespace/netem harness and compare stream versus datagram behavior under identical impairments.
+- Reproduce selected fleet-placement and host/process-distribution scenarios with real multi-host or multi-region infrastructure when a concrete production decision justifies the cost.
+- Reproduce selected cache, shard, and admission-control scenarios with real native processes when there is a concrete measurement question.
 - Compare persistent HTTP/TCP connection reuse with the deterministic pool model using measured native evidence.
-- Run the multiplayer recovery experiment across actual hosts/regions only when there is a concrete infrastructure decision to validate.
+- Run multiplayer recovery across actual hosts/regions only when there is a concrete infrastructure decision to validate.
 - Add richer causal/conflict-resolution exhibits only when there is a concrete trace that needs vector clocks, CRDTs, or similar machinery.
-- Extract reusable production kernels only after a lab experiment proves a stable cross-repository owner is warranted.
+- Extract reusable production kernels into repositories such as `server-setup` only after the lab contract has proved stable and more than one concrete consumer benefits from the abstraction.
