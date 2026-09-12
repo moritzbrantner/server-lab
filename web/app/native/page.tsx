@@ -142,9 +142,9 @@ export default function NativePage() {
             <p>Numbered UDP datagrams make out-of-order delivery observable instead of relying on TCP, which hides ordering from the application.</p>
           </div>
           <div>
-            <span>Seeded impairment</span>
+            <span>Configured impairment</span>
             <strong>loss · jitter · duplication · rate</strong>
-            <p>The receipt records UDP delivery/loss/reordering plus the kernel qdisc statistics without treating exact percentages as benchmark guarantees.</p>
+            <p>The receipt records UDP delivery/loss/reordering plus kernel qdisc statistics. Random loss outcomes are evidence, not exact deterministic correctness data.</p>
           </div>
         </div>
       </section>
