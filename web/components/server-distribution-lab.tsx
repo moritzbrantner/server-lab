@@ -233,11 +233,13 @@ export function ServerDistributionLab() {
           </div>
 
           <div className="global-explanation">
-            <h3>`server-setup` candidate boundary</h3>
+            <h3>Possible fleet-scheduler boundary</h3>
             <p>
               This layer is intentionally infrastructure-shaped: discovered process
               topology, health, drain state, capacity, failure-domain identity, and a
               stable workload id go in; one deterministic target process comes out.
+              <code>game-server</code> can expose those process facts, while <code>server-setup</code>
+              remains responsible for host facts and prerequisites rather than application placement.
               Provisioning and deployment orchestration are still outside the model.
             </p>
           </div>
