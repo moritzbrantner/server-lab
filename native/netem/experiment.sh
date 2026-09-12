@@ -83,7 +83,7 @@ PY
 
 ip netns exec "$CLIENT_NS" tc qdisc del dev eth0 root
 ip netns exec "$SERVER_NS" tc qdisc del dev eth0 root
-ip netns exec "$CLIENT_NS" tc qdisc add dev eth0 root netem gap 5 delay 20ms
+ip netns exec "$CLIENT_NS" tc qdisc add dev eth0 root netem delay 20ms reorder 100% gap 5
 reordered=$(ip netns exec "$CLIENT_NS" "$UDP_BIN" client 10.203.0.2:9001 200 1 3000)
 
 python3 - "$reordered" <<'PY'
