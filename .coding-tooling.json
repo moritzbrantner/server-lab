@@ -35,5 +35,9 @@
         "1000"
       ]
     }
+  },
+  "merge": {
+    "authority": "hosted",
+    "requiredChecks": ["merge-ready"]
   }
 }
