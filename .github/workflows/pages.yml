@@ -6,10 +6,7 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/pages.yml"
-  pull_request:
-    paths:
-      - "web/**"
-      - ".github/workflows/pages.yml"
+  workflow_call:
 
 permissions:
   contents: read
